@@ -12,6 +12,14 @@ import {
   PhFileCsv as FileCsv,
 } from '@phosphor-icons/vue';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
+import {
+  REPLACE_LEAD_OPTIONS,
+  WARRANTY_LEAD_OPTIONS,
+  usePrefsStore,
+} from '@/stores/prefs';
+
+const prefs = usePrefsStore();
+const remindModal = ref(false);
 
 const theme = ref<'light' | 'dark'>('light');
 const health = ref<'checking' | 'ok' | 'fail'>('checking');
@@ -21,6 +29,7 @@ const fileInput = ref<HTMLInputElement | null>(null);
 onMounted(() => {
   theme.value = (localStorage.getItem('hmm-theme') as 'light' | 'dark') ?? 'light';
   apply();
+  prefs.load();
   void ping();
 });
 
@@ -106,10 +115,10 @@ function onClear() {
         <span>家庭成员</span>
         <span class="tiny">需登录后开放</span>
       </button>
-      <button class="row" type="button" disabled>
+      <button class="row" type="button" @click="remindModal = true">
         <Bell :size="18" />
         <span>提醒设置</span>
-        <span class="tiny">需登录后开放</span>
+        <span class="tiny">质保提前 {{ prefs.warrantyLeadDays }} 天 · 换新提前 {{ prefs.replaceLeadDays }} 天</span>
       </button>
     </section>
 
@@ -152,11 +161,96 @@ function onClear() {
 
     <p class="tiny center">HMM v0.1.0 · 本地可用版</p>
 
+    <div v-if="remindModal" class="overlay" @click.self="remindModal = false">
+      <div class="sheet">
+        <div class="sheet-head">
+          <strong>提醒设置</strong>
+          <button class="mini" type="button" @click="remindModal = false">完成</button>
+        </div>
+        <p class="tiny desc">决定首页和日历从多久之前开始提醒你。提前越多，准备资金的时间越充裕。</p>
+
+        <label class="field">
+          <span>质保到期提前</span>
+          <select
+            :value="prefs.warrantyLeadDays"
+            @change="prefs.setWarrantyLead(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option v-for="d in WARRANTY_LEAD_OPTIONS" :key="d" :value="d">{{ d }} 天</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>预计换新提前</span>
+          <select
+            :value="prefs.replaceLeadDays"
+            @change="prefs.setReplaceLead(Number(($event.target as HTMLSelectElement).value))"
+          >
+            <option v-for="d in REPLACE_LEAD_OPTIONS" :key="d" :value="d">{{ d }} 天</option>
+          </select>
+        </label>
+
+        <p class="tiny">当前：{{ prefs.warrantyLeadDays }} 天 / {{ prefs.replaceLeadDays }} 天，改完立即生效。</p>
+      </div>
+    </div>
+
     <div v-if="toast" class="toast">{{ toast }}</div>
   </div>
 </template>
 
 <style scoped>
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 0.42);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  z-index: 40;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-card);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-md);
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.field select {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-card);
+  color: var(--color-text);
+  font: inherit;
+}
+
+@media (min-width: 640px) {
+  .overlay {
+    align-items: center;
+    padding: var(--space-lg);
+  }
+
+  .sheet {
+    border-radius: var(--radius-card);
+  }
+}
+
 .page {
   display: grid;
   gap: var(--space-md);

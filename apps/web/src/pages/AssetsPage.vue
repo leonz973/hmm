@@ -9,12 +9,24 @@ import {
 } from '@phosphor-icons/vue';
 import { formatFen } from '@hmm/shared';
 import { useAssetsStore } from '@/stores/assets';
+import { useInvoicesStore } from '@/stores/invoices';
 
 const store = useAssetsStore();
+const invoices = useInvoicesStore();
 const router = useRouter();
 const keyword = ref('');
 
-onMounted(() => store.load());
+onMounted(() => {
+  store.load();
+  invoices.load();
+});
+
+/** 资产 id → 关联发票数量 */
+const invoiceCount = computed(() => {
+  const m = new Map<string, number>();
+  for (const inv of invoices.items) for (const id of inv.assetIds) m.set(id, (m.get(id) ?? 0) + 1);
+  return m;
+});
 
 const filtered = computed(() => {
   const kw = keyword.value.trim();
@@ -94,6 +106,9 @@ function toForm(id: string) {
             质保 {{ a.warrantyMonths ? `至 ${a.warrantyEndDate}` : '无' }} · 换新约 ¥{{
               formatFen(a.estimatedReplaceCostFen)
             }}
+            <template v-if="invoiceCount.get(a.id)">
+              · {{ invoiceCount.get(a.id) }} 张发票
+            </template>
           </div>
         </div>
         <CaretRight :size="16" class="chev" />

@@ -9,10 +9,17 @@ import {
 } from '@phosphor-icons/vue';
 import { formatFen } from '@hmm/shared';
 import { useAssetsStore } from '@/stores/assets';
-import { demoFixedExpenses } from '@/demo/data';
+import { useFixedExpensesStore, CYCLE_MONTHS } from '@/stores/fixedExpenses';
+import { useBillsStore } from '@/stores/bills';
 
 const store = useAssetsStore();
-onMounted(() => store.load());
+const fixedStore = useFixedExpensesStore();
+const billsStore = useBillsStore();
+onMounted(() => {
+  store.load();
+  fixedStore.load();
+  billsStore.load();
+});
 
 type EvKind = 'warranty' | 'replace' | 'bill';
 interface Ev {
@@ -77,23 +84,31 @@ const events = computed<Record<string, Ev[]>>(() => {
 
   const y = cursor.value.getFullYear();
   const m = cursor.value.getMonth();
-  for (const f of demoFixedExpenses) {
-    const [fy, fm, fd] = f.dueDate.split('-').map(Number);
-    if (f.cycle === '每月') {
-      push(`${y}-${String(m + 1).padStart(2, '0')}-${String(fd).padStart(2, '0')}`, {
-        kind: 'bill',
-        title: f.name,
-        detail: '固定支出',
-        amountFen: f.amountFen,
-      });
-    } else if (f.cycle === '每年' && fm === m + 1) {
-      push(`${y}-${String(fm).padStart(2, '0')}-${String(fd).padStart(2, '0')}`, {
-        kind: 'bill',
-        title: f.name,
-        detail: '年度支出',
-        amountFen: f.amountFen,
-      });
-    }
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  // 固定支出：按周期判断本月是否该扣
+  for (const f of fixedStore.items) {
+    const [ay, am, ad] = f.dueDate.split('-').map(Number);
+    const step = CYCLE_MONTHS[f.cycle];
+    const diff = (y - ay) * 12 + (m + 1 - am);
+    if (diff < 0 || diff % step !== 0) continue;
+    push(`${y}-${pad(m + 1)}-${pad(ad)}`, {
+      kind: 'bill',
+      title: f.name,
+      detail: `固定支出 · ${f.cycle}`,
+      amountFen: f.amountFen,
+    });
+  }
+
+  // 水电燃气账单：到期日落在本月
+  for (const b of billsStore.views) {
+    if (!b.dueDate.startsWith(`${y}-${pad(m + 1)}`)) continue;
+    push(b.dueDate, {
+      kind: 'bill',
+      title: `${b.type} ${b.period}`,
+      detail: b.isPaid ? '已缴' : '待缴',
+      amountFen: b.amountFen,
+    });
   }
   return map;
 });

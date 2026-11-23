@@ -12,9 +12,21 @@ import {
 import { blobUrl } from '@/lib/idb';
 import { money, todayISO } from '@/lib/persist';
 import { INVOICE_KINDS, useInvoicesStore, type InvoiceKind } from '@/stores/invoices';
+import { useAssetsStore } from '@/stores/assets';
 
 const store = useInvoicesStore();
-onMounted(() => store.load());
+const assets = useAssetsStore();
+onMounted(() => {
+  store.load();
+  assets.load();
+});
+
+/** 资产 id → 名称，用于把发票挂到具体设备上 */
+const assetName = computed(() => {
+  const m = new Map<string, string>();
+  for (const a of assets.views) m.set(a.id, a.name);
+  return m;
+});
 
 const keyword = ref('');
 const kindFilter = ref<'全部' | InvoiceKind>('全部');
@@ -40,7 +52,14 @@ const form = reactive({
   kind: '家电' as InvoiceKind,
   number: '',
   note: '',
+  assetIds: [] as string[],
 });
+
+function toggleAsset(id: string) {
+  const i = form.assetIds.indexOf(id);
+  if (i >= 0) form.assetIds.splice(i, 1);
+  else form.assetIds.push(id);
+}
 
 function open() {
   error.value = '';
@@ -52,6 +71,7 @@ function open() {
   form.kind = '家电';
   form.number = '';
   form.note = '';
+  form.assetIds = [];
   modal.value = true;
 }
 
@@ -75,7 +95,7 @@ async function save() {
       date: form.date,
       kind: form.kind,
       number: form.number.trim() || undefined,
-      assetIds: [],
+      assetIds: [...form.assetIds],
       note: form.note.trim() || undefined,
     },
     file.value ?? undefined,
@@ -148,6 +168,11 @@ function sizeText(bytes?: number) {
             {{ inv.seller }} · {{ inv.date }}
             <template v-if="inv.number"> · No.{{ inv.number }}</template>
           </div>
+          <div v-if="inv.assetIds.length" class="linked">
+            <span v-for="id in inv.assetIds" :key="id" class="asset-chip">
+              {{ assetName.get(id) ?? '已删除的资产' }}
+            </span>
+          </div>
           <div v-if="inv.note" class="tiny note">{{ inv.note }}</div>
         </div>
         <div class="num amount">¥{{ money(inv.amountFen) }}</div>
@@ -206,6 +231,23 @@ function sizeText(bytes?: number) {
           <input v-model="form.number" placeholder="04412345" />
         </label>
 
+        <div class="field">
+          <span>关联资产（可选，可多选）</span>
+          <div class="chips">
+            <button
+              v-for="a in assets.sortedViews"
+              :key="a.id"
+              type="button"
+              class="pick"
+              :class="{ on: form.assetIds.includes(a.id) }"
+              @click="toggleAsset(a.id)"
+            >
+              {{ a.name }}
+            </button>
+            <span v-if="!assets.items.length" class="tiny">还没有资产，可先去「资产」页录入</span>
+          </div>
+        </div>
+
         <label class="upload">
           <Paperclip :size="18" />
           <span>{{ file ? file.name : '选择发票照片或 PDF' }}</span>
@@ -229,6 +271,45 @@ function sizeText(bytes?: number) {
 </template>
 
 <style scoped>
+.linked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.asset-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-primary-weak);
+  color: var(--color-primary-hover);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.pick {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pick.on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-weak);
+  color: var(--color-primary-hover);
+  font-weight: 600;
+}
+
 .wrap {
   display: grid;
   gap: var(--space-md);

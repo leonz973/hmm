@@ -13,14 +13,17 @@ import {
 import { formatFen } from '@hmm/shared';
 import { useAssetsStore } from '@/stores/assets';
 import { useFixedExpensesStore } from '@/stores/fixedExpenses';
+import { usePrefsStore } from '@/stores/prefs';
 
 const store = useAssetsStore();
 const fixedStore = useFixedExpensesStore();
+const prefs = usePrefsStore();
 const router = useRouter();
 
 onMounted(() => {
   store.load();
   fixedStore.load();
+  prefs.load();
 });
 
 interface Item {
@@ -40,7 +43,7 @@ const items = computed<Item[]>(() => {
     const wDays = Math.round(
       (new Date(a.warrantyEndDate + 'T00:00:00').getTime() - Date.now()) / 86400000,
     );
-    if (a.warrantyMonths > 0 && wDays >= 0 && wDays <= 180) {
+    if (a.warrantyMonths > 0 && wDays >= 0 && wDays <= prefs.warrantyLeadDays) {
       out.push({
         id: `${a.id}-w`,
         kind: 'warranty',
@@ -48,10 +51,10 @@ const items = computed<Item[]>(() => {
         subtitle: wDays === 0 ? '今天到期' : `还有 ${wDays} 天`,
         date: a.warrantyEndDate,
         days: wDays,
-        tone: wDays <= 30 ? 'warn' : 'ok',
+        tone: wDays <= Math.min(30, prefs.warrantyLeadDays) ? 'warn' : 'ok',
       });
     }
-    if (a.daysToReplace <= 365) {
+    if (a.daysToReplace <= Math.max(prefs.replaceLeadDays, 30)) {
       out.push({
         id: `${a.id}-r`,
         kind: 'replace',
@@ -61,7 +64,7 @@ const items = computed<Item[]>(() => {
         date: a.expectedReplaceDate,
         days: a.daysToReplace,
         amountFen: a.estimatedReplaceCostFen,
-        tone: a.daysToReplace < 0 ? 'urgent' : a.daysToReplace <= 90 ? 'warn' : 'ok',
+        tone: a.daysToReplace < 0 ? 'urgent' : a.daysToReplace <= prefs.replaceLeadDays ? 'warn' : 'ok',
       });
     }
   }
@@ -217,7 +220,7 @@ function money(fen?: number) {
       <section class="card">
         <div class="section-head">
           <h2>接下来要留意</h2>
-          <span class="tiny">未来一年内</span>
+          <span class="tiny">按提醒设置（{{ prefs.replaceLeadDays }} 天）</span>
         </div>
         <ul class="timeline">
           <li v-for="i in upcoming" :key="i.id">
@@ -232,7 +235,7 @@ function money(fen?: number) {
             <span class="dot-sev" :class="i.tone" />
           </li>
           <li v-if="!upcoming.length" class="none">
-            <span class="tiny">未来一年没有需要处理的事，安心</span>
+            <span class="tiny">提醒窗口内没有需要处理的事，安心</span>
           </li>
         </ul>
       </section>
