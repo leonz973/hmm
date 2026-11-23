@@ -12,12 +12,16 @@ import {
 } from '@phosphor-icons/vue';
 import { formatFen } from '@hmm/shared';
 import { useAssetsStore } from '@/stores/assets';
-import { demoFixedExpenses } from '@/demo/data';
+import { useFixedExpensesStore } from '@/stores/fixedExpenses';
 
 const store = useAssetsStore();
+const fixedStore = useFixedExpensesStore();
 const router = useRouter();
 
-onMounted(() => store.load());
+onMounted(() => {
+  store.load();
+  fixedStore.load();
+});
 
 interface Item {
   id: string;
@@ -67,9 +71,7 @@ const items = computed<Item[]>(() => {
 const urgent = computed(() => items.value.filter((i) => i.tone !== 'ok').slice(0, 5));
 const upcoming = computed(() => items.value.slice(0, 6));
 
-const monthlyFixed = computed(() =>
-  demoFixedExpenses.filter((f) => f.cycle === '每月').reduce((s, f) => s + f.amountFen, 0),
-);
+const monthlyFixed = computed(() => fixedStore.monthlyTotalFen);
 
 const next12Cost = computed(() =>
   store.views
@@ -112,7 +114,7 @@ function money(fen?: number) {
         <div>
           <div class="tiny">本月固定支出</div>
           <div class="big num">{{ money(monthlyFixed) }}</div>
-          <div class="tiny">共 {{ demoFixedExpenses.filter((f) => f.cycle === '每月').length }} 项</div>
+          <div class="tiny">共 {{ fixedStore.views.length }} 项</div>
         </div>
         <div class="divider" />
         <div>

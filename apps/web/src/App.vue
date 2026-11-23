@@ -15,7 +15,7 @@ const tabs = [
   { path: '/', label: '首页', icon: HouseIcon },
   { path: '/assets', label: '资产', icon: Armchair },
   { path: '/calendar', label: '日历', icon: CalendarDots },
-  { path: '/receipts', label: '票据', icon: Receipt },
+  { path: '/receipts', label: '账目', icon: Receipt },
   { path: '/settings', label: '我的', icon: UserCircle },
 ];
 

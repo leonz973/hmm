@@ -14,8 +14,9 @@ export default defineConfig({
     port: 5173,
     host: true,
     watch: {
-      // vitest 会在 __tests__ 下生成临时文件，Windows 上监听到会 EBUSY 崩进程
-      ignored: ['**/__tests__/**', '**/dist/**', '**/coverage/**'],
+      // vitest 临时文件、以及编辑器/工具原子写入产生的 .xxx.tmpdir 目录，
+      // Windows 上被监听会 EBUSY 直接崩掉 dev server
+      ignored: [/\.tmpdir/, /__tests__/, '**/dist/**', '**/coverage/**'],
     },
     proxy: {
       '/api': {
