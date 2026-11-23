@@ -73,6 +73,28 @@ const upcoming = computed(() => items.value.slice(0, 6));
 
 const monthlyFixed = computed(() => fixedStore.monthlyTotalFen);
 
+/** 未来 12 个月现金流：资产更换 + 固定支出 */
+const cashflow = computed(() => {
+  const out: Array<{ month: string; replaceFen: number; fixedFen: number; totalFen: number }> = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const replaceFen = store.views
+      .filter((a) => a.expectedReplaceDate.slice(0, 7) === key)
+      .reduce((s, a) => s + a.estimatedReplaceCostFen, 0);
+    const fixedFen = fixedStore.next12Months.find((m) => m.month === key)?.amountFen ?? 0;
+    out.push({ month: key, replaceFen, fixedFen, totalFen: replaceFen + fixedFen });
+  }
+  return out;
+});
+
+const cashflowMax = computed(() => Math.max(1, ...cashflow.value.map((m) => m.totalFen)));
+const reservePerMonth = computed(() =>
+  Math.round(cashflow.value.reduce((s, m) => s + m.totalFen, 0) / 12),
+);
+const yearReplaceTotal = computed(() => cashflow.value.reduce((s, m) => s + m.replaceFen, 0));
+
 const next12Cost = computed(() =>
   store.views
     .filter((a) => a.daysToReplace <= 365)
@@ -154,6 +176,42 @@ function money(fen?: number) {
             去看看
           </button>
         </article>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>未来 12 个月的钱</h2>
+          <span class="tiny">更换 + 固定支出</span>
+        </div>
+        <div class="reserve">
+          <div>
+            <div class="tiny">建议每月预留</div>
+            <div class="big num">¥{{ money(reservePerMonth) }}</div>
+          </div>
+          <div class="reserve-note tiny">
+            全年更换 {{ money(yearReplaceTotal) }} 元 + 固定支出
+            {{ money(cashflow.reduce((s, m) => s + m.fixedFen, 0)) }} 元，摊到每个月
+          </div>
+        </div>
+        <div class="flow">
+          <div v-for="m in cashflow" :key="m.month" class="flow-col" :title="`${m.month} 合计 ¥${money(m.totalFen)}`">
+            <div class="flow-bar">
+              <div
+                class="seg replace"
+                :style="{ height: Math.round((m.replaceFen / cashflowMax) * 100) + '%' }"
+              />
+              <div
+                class="seg fixed"
+                :style="{ height: Math.round((m.fixedFen / cashflowMax) * 100) + '%' }"
+              />
+            </div>
+            <span class="tiny">{{ Number(m.month.split('-')[1]) }}月</span>
+          </div>
+        </div>
+        <div class="legend tiny">
+          <span><i class="sw replace" /> 更换</span>
+          <span><i class="sw fixed" /> 固定支出</span>
+        </div>
       </section>
 
       <section class="card">
@@ -384,6 +442,87 @@ ul {
 
 .dot-sev.urgent {
   background: var(--color-danger);
+}
+
+.reserve {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0 var(--space-md);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.reserve-note {
+  flex: 1;
+  line-height: 1.5;
+}
+
+.flow {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 120px;
+  padding-top: var(--space-md);
+}
+
+.flow-col {
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.flow-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.seg {
+  width: 100%;
+  min-height: 0;
+}
+
+.seg.replace {
+  background: var(--color-accent);
+}
+
+.seg.fixed {
+  background: color-mix(in srgb, var(--color-primary) 55%, white);
+}
+
+.legend {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  padding-top: var(--space-sm);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sw {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.sw.replace {
+  background: var(--color-accent);
+}
+
+.sw.fixed {
+  background: color-mix(in srgb, var(--color-primary) 55%, white);
 }
 
 @media (min-width: 768px) {
