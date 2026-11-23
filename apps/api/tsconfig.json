@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "noEmit": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "incremental": true,
+    "paths": {
+      "@hmm/shared": ["../../packages/shared/src/main.ts"]
+    }
+  },
+  "include": ["src", "prisma"]
+}

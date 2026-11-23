@@ -1,0 +1,38 @@
+# 本地开发依赖：PostgreSQL + MinIO（只需 Docker）
+# 用法：docker compose -f deploy/docker-compose.dev.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hmm
+      POSTGRES_PASSWORD: hmm_dev_pw
+      POSTGRES_DB: hmm
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hmm -d hmm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: hmm_minio
+      MINIO_ROOT_PASSWORD: hmm_minio_dev_pw
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_dev:/data
+
+volumes:
+  pgdata_dev:
+  minio_dev:

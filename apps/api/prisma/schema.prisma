@@ -1,0 +1,248 @@
+// HMM 数据模型（Prisma schema）
+// 金额一律 Int 存"分"；日期存 LocalDate 字符串（YYYY-MM-DD）避免时区歧义。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  displayName     String
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  memberships  Membership[]
+  ownedHouses  Household[]  @relation("HouseholdOwner")
+  auditLogs    AuditLog[]
+}
+
+model Household {
+  id          String    @id @default(cuid())
+  name        String
+  ownerUserId String
+  inviteCode  String?   @unique
+  inviteExp   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  owner       User          @relation("HouseholdOwner", fields: [ownerUserId], references: [id])
+  memberships Membership[]
+  categories  Category[]
+  locations   Location[]
+  assets      Asset[]
+  fixedExpenses FixedExpense[]
+  expenseRecords ExpenseRecord[]
+  utilityBills UtilityBill[]
+  invoices    Invoice[]
+  attachments Attachment[]
+  reminders   Reminder[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  householdId String
+  role        String // owner | member
+  joinedAt    DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  household Household @relation(fields: [householdId], references: [id])
+
+  @@unique([userId, householdId])
+}
+
+model Category {
+  id                     String  @id @default(cuid())
+  householdId            String? // null = 内置全局品类（只读种子）
+  parentId               String?
+  key                    String? // 内置品类的稳定 key
+  name                   String
+  icon                   String?
+  defaultLifeMonths      Int?
+  defaultWarrantyMonths  Int?
+  inflationRate          Decimal? @db.Decimal(5, 2) // 年通胀率 %
+  isBuiltin              Boolean @default(false)
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  assets   Asset[]
+
+  @@unique([householdId, key])
+}
+
+model Location {
+  id          String  @id @default(cuid())
+  householdId String
+  name        String
+
+  household Household @relation(fields: [householdId], references: [id])
+  assets    Asset[]
+}
+
+model Asset {
+  id                      String   @id @default(cuid())
+  householdId             String
+  name                    String
+  categoryId              String?
+  brand                   String?
+  model                   String?
+  sn                      String?
+  purchaseDate            String? // YYYY-MM-DD
+  priceFen                Int? // 购买价（分）
+  qty                     Int      @default(1)
+  locationId              String?
+  status                  String   @default("in_use") // in_use|replaced|scrapped|donated|sold
+  usageLevel              String? // low|mid|high
+  expectedReplacementDate String? // YYYY-MM-DD（推算结果，可手改）
+  estReplacementPriceFen  Int? // 预估更换价（分）
+  replacedByAssetId       String?
+  createdBy               String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  deletedAt               DateTime?
+
+  household  Household  @relation(fields: [householdId], references: [id])
+  category   Category?  @relation(fields: [categoryId], references: [id])
+  location   Location?  @relation(fields: [locationId], references: [id])
+  warranties Warranty[]
+  attachments Attachment[]
+}
+
+model Warranty {
+  id        String   @id @default(cuid())
+  assetId   String
+  type      String // manufacturer|extended|seller
+  startDate String // YYYY-MM-DD
+  endDate   String // YYYY-MM-DD
+  provider  String?
+  invoiceId String?
+  createdAt DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id])
+}
+
+model FixedExpense {
+  id            String    @id @default(cuid())
+  householdId   String
+  name          String
+  amountFen     Int
+  cycle         String // month|quarter|half_year|year|custom_days
+  customDays    Int?
+  firstDueDate  String // YYYY-MM-DD
+  account       String?
+  autoPay       Boolean   @default(false)
+  active        Boolean   @default(true)
+  endDate       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  household      Household       @relation(fields: [householdId], references: [id])
+  expenseRecords ExpenseRecord[]
+}
+
+model ExpenseRecord {
+  id          String   @id @default(cuid())
+  householdId String
+  date        String // YYYY-MM-DD
+  amountFen   Int
+  note        String?
+  refType     String // fixed|utility|manual
+  refId       String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  household Household     @relation(fields: [householdId], references: [id])
+  fixedRef  FixedExpense? @relation(fields: [refId], references: [id])
+}
+
+model UtilityBill {
+  id          String   @id @default(cuid())
+  householdId String
+  type        String // water|electricity|gas|property
+  periodStart String
+  periodEnd   String
+  amountFen   Int
+  usage       String?
+  reading     String?
+  invoiceId   String?
+  note        String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  household Household @relation(fields: [householdId], references: [id])
+  invoice   Invoice?  @relation(fields: [invoiceId], references: [id])
+}
+
+model Invoice {
+  id          String   @id @default(cuid())
+  householdId String
+  files       Json // [{objectKey,size,mime}]
+  amountFen   Int?
+  invoiceDate String?
+  merchant    String?
+  invoiceNo   String?
+  note        String?
+  reimbursed  Boolean?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  household    Household     @relation(fields: [householdId], references: [id])
+  utilityBills UtilityBill[]
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  householdId String
+  objectKey   String
+  mime        String
+  size        Int
+  entity      String // asset|invoice|bill
+  entityId    String
+  createdAt   DateTime @default(now())
+
+  household Household @relation(fields: [householdId], references: [id])
+}
+
+model Reminder {
+  id          String    @id @default(cuid())
+  householdId String
+  type        String // warranty_expire|replacement|fixed_due|subscription
+  refId       String
+  fireDate    String // YYYY-MM-DD
+  severity    String    @default("info") // info|warn|urgent
+  payload     Json?
+  readAt      DateTime?
+  sentPushAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  household Household @relation(fields: [householdId], references: [id])
+
+  @@unique([type, refId, fireDate])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  householdId String
+  userId      String
+  action      String
+  entity      String
+  entityId    String?
+  detail      Json?
+  at          DateTime @default(now())
+
+  household Household @relation(fields: [householdId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}

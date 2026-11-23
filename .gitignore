@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+coverage/
+*.local
+.env
+.env.*
+!.env.example
+deploy/backups/
+deploy/data/
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# 本地包管理器缓存（沙箱环境使用工作区内缓存）
+.npm-cache/
+.pnpm-store/
+
+# 运行日志
+*.log
+
+# meow-memory 记忆库（误删无法恢复，禁止提交/清理）
+.dsh-meow/

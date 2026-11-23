@@ -1,0 +1,210 @@
+import { defineStore } from 'pinia';
+import { computed, ref, watch } from 'vue';
+import {
+  BUILTIN_CATEGORIES,
+  calcReplacementDate,
+  calcWarrantyEndDate,
+  USAGE_LIFE_FACTOR,
+  type UsageLevel,
+} from '@hmm/shared';
+
+export interface StoredAsset {
+  id: string;
+  name: string;
+  categoryKey: string;
+  categoryName: string;
+  location: string;
+  purchaseDate: string;
+  /** 金额一律存「分」 */
+  priceFen: number;
+  warrantyMonths: number;
+  expectedLifeMonths: number;
+  usageLevel: UsageLevel;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetView extends StoredAsset {
+  warrantyEndDate: string;
+  expectedReplaceDate: string;
+  daysToReplace: number;
+  lifeUsedPercent: number;
+  residualValueFen: number;
+  estimatedReplaceCostFen: number;
+  warrantyExpired: boolean;
+}
+
+const STORAGE_KEY = 'hmm.assets.v1';
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round((new Date(to + 'T00:00:00').getTime() - new Date(from + 'T00:00:00').getTime()) / 86400000);
+}
+
+function monthsBetween(from: string, to: string): number {
+  const a = new Date(from + 'T00:00:00');
+  const b = new Date(to + 'T00:00:00');
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/** 首次使用时的示例数据，用户可以改、删，也可一键清空 */
+function seedAssets(): StoredAsset[] {
+  const make = (
+    name: string,
+    categoryKey: string,
+    location: string,
+    purchaseDate: string,
+    priceFen: number,
+    usageLevel: UsageLevel,
+    warrantyMonths?: number,
+    expectedLifeMonths?: number,
+  ): StoredAsset => {
+    const cat = BUILTIN_CATEGORIES.find((c) => c.key === categoryKey);
+    return {
+      id: crypto.randomUUID(),
+      name,
+      categoryKey,
+      categoryName: cat?.name ?? categoryKey,
+      location,
+      purchaseDate,
+      priceFen,
+      warrantyMonths: warrantyMonths ?? cat?.warrantyMonths ?? 12,
+      expectedLifeMonths: expectedLifeMonths ?? cat?.lifeMonths ?? 96,
+      usageLevel,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  return [
+    make('海尔冰箱 BCD-501', 'fridge', '厨房', '2019-05-18', 429900, 'mid'),
+    make('小米空调 1.5匹', 'ac', '主卧', '2021-06-02', 269900, 'high'),
+    make('林内燃气热水器', 'gas_heater', '卫生间', '2018-03-11', 318000, 'mid'),
+    make('西门子洗衣机', 'washer', '阳台', '2020-09-25', 389900, 'mid'),
+    make('实木餐桌', 'dining_table', '餐厅', '2021-11-08', 560000, 'mid'),
+    make('净水滤芯（RO）', 'purifier_filter', '厨房', '2026-09-01', 18900, 'mid'),
+  ];
+}
+
+export const useAssetsStore = defineStore('assets', () => {
+  const items = ref<StoredAsset[]>([]);
+  const loaded = ref(false);
+
+  function load() {
+    if (loaded.value) return;
+    loaded.value = true;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          items.value = parsed;
+          return;
+        }
+      }
+    } catch {
+      // 数据损坏时回到种子数据，避免整个应用起不来
+    }
+    items.value = seedAssets();
+  }
+
+  watch(
+    items,
+    (value) => {
+      if (!loaded.value) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      } catch {
+        // 存储配额满时静默失败：数据仍在内存里，本页可用
+      }
+    },
+    { deep: true },
+  );
+
+  const views = computed<AssetView[]>(() => {
+    const today = todayISO();
+    return items.value.map((a) => {
+      const warrantyEndDate = calcWarrantyEndDate(a.purchaseDate, a.warrantyMonths);
+      const expectedReplaceDate = calcReplacementDate(a.purchaseDate, a.expectedLifeMonths, a.usageLevel);
+      const totalMonths = Math.max(1, monthsBetween(a.purchaseDate, expectedReplaceDate));
+      const usedMonths = monthsBetween(a.purchaseDate, today);
+      const lifeUsedPercent = Math.min(100, Math.max(0, Math.round((usedMonths / totalMonths) * 100)));
+      const residualValueFen = Math.max(0, Math.round(a.priceFen * (1 - lifeUsedPercent / 100)));
+      const cat = BUILTIN_CATEGORIES.find((c) => c.key === a.categoryKey);
+      const years = Math.max(0, totalMonths / 12);
+      const estimatedReplaceCostFen = Math.round(a.priceFen * Math.pow(1 + (cat?.inflationRate ?? 0) / 100, years));
+      return {
+        ...a,
+        warrantyEndDate,
+        expectedReplaceDate,
+        daysToReplace: daysBetween(today, expectedReplaceDate),
+        lifeUsedPercent,
+        residualValueFen,
+        estimatedReplaceCostFen,
+        warrantyExpired: a.warrantyMonths > 0 && daysBetween(today, warrantyEndDate) < 0,
+      };
+    });
+  });
+
+  /** 最该换的排前面；已超期的负数排最前 */
+  const sortedViews = computed(() => [...views.value].sort((a, b) => a.daysToReplace - b.daysToReplace));
+
+  const totalValueFen = computed(() => items.value.reduce((s, a) => s + a.priceFen, 0));
+  const totalResidualFen = computed(() => views.value.reduce((s, a) => s + a.residualValueFen, 0));
+
+  function getById(id: string): StoredAsset | undefined {
+    return items.value.find((a) => a.id === id);
+  }
+
+  function create(input: Omit<StoredAsset, 'id' | 'createdAt' | 'updatedAt'>): string {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    items.value.push({ ...input, id, createdAt: now, updatedAt: now });
+    return id;
+  }
+
+  function update(id: string, patch: Partial<StoredAsset>) {
+    const idx = items.value.findIndex((a) => a.id === id);
+    if (idx < 0) return;
+    items.value[idx] = { ...items.value[idx], ...patch, id, updatedAt: new Date().toISOString() };
+  }
+
+  function remove(id: string) {
+    items.value = items.value.filter((a) => a.id !== id);
+  }
+
+  function clearAll() {
+    items.value = [];
+  }
+
+  function restoreDemo() {
+    items.value = seedAssets();
+  }
+
+  /** 寿命系数提示：高使用强度按 0.8 折算 */
+  function effectiveLifeMonths(baseMonths: number, usage: UsageLevel): number {
+    return Math.round(baseMonths * USAGE_LIFE_FACTOR[usage]);
+  }
+
+  return {
+    items,
+    loaded,
+    views,
+    sortedViews,
+    totalValueFen,
+    totalResidualFen,
+    load,
+    getById,
+    create,
+    update,
+    remove,
+    clearAll,
+    restoreDemo,
+    effectiveLifeMonths,
+  };
+});

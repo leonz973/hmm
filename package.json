@@ -1,0 +1,28 @@
+{
+  "name": "hmm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HMM 家庭资产管理系统 monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:web": "npm run dev -w @hmm/web",
+    "dev:api": "npm run start:dev -w @hmm/api",
+    "dev": "concurrently -n web,api -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "build": "npm run build -w @hmm/web && npm run build -w @hmm/api",
+    "build:web": "npm run build -w @hmm/web",
+    "build:api": "npm run build -w @hmm/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.2"
+  }
+}
