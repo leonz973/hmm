@@ -4,10 +4,16 @@ import { useRouter } from 'vue-router';
 import { PhArrowLeft as ArrowLeftIcon, PhCloudArrowUp as CloudIcon } from '@phosphor-icons/vue';
 import { useAuthStore } from '@/stores/auth';
 import { useAssetsStore } from '@/stores/assets';
+import { useFixedExpensesStore } from '@/stores/fixedExpenses';
+import { useBillsStore } from '@/stores/bills';
+import { useInvoicesStore } from '@/stores/invoices';
 
 const router = useRouter();
 const auth = useAuthStore();
 const assets = useAssetsStore();
+const fixed = useFixedExpensesStore();
+const bills = useBillsStore();
+const invoices = useInvoicesStore();
 
 const mode = ref<'login' | 'register'>('login');
 const email = ref('');
@@ -36,8 +42,13 @@ async function submit() {
     } else {
       await auth.register(email.value.trim(), password.value, displayName.value.trim());
     }
-    // 登录后立刻把云端的资产拉下来
-    await assets.hydrateFromCloud();
+    // 登录后立刻把云端四块数据都拉一遍
+    await Promise.all([
+      assets.hydrateFromCloud(),
+      fixed.hydrateFromCloud(),
+      bills.hydrateFromCloud(),
+      invoices.hydrateFromCloud(),
+    ]);
     void router.replace('/');
   } catch (e) {
     error.value = e instanceof Error ? e.message : '操作失败，请重试';

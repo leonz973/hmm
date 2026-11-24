@@ -35,6 +35,40 @@ export interface AuthResult {
   expiresIn: number;
 }
 
+export interface FixedExpensePayload {
+  name: string;
+  amountFen: number;
+  cycle: string;
+  dueDate: string;
+  category?: string;
+  autoPay?: boolean;
+  note?: string;
+}
+
+export interface BillPayload {
+  type: string;
+  period: string;
+  amountFen: number;
+  usage?: string;
+  dueDate?: string;
+  note?: string;
+}
+
+export interface InvoicePayload {
+  seller: string;
+  title?: string;
+  amountFen: number;
+  date: string;
+  kind?: string;
+  number?: string;
+  assetIds?: string[];
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  blobKey?: string;
+  note?: string;
+}
+
 export interface AssetPayload {
   name: string;
   categoryKey?: string;
@@ -212,5 +246,50 @@ export const api = {
 
   deleteAsset(id: string) {
     return request<{ ok: boolean }>(`/assets/${id}`, { method: 'DELETE' });
+  },
+
+  listFixedExpenses<T>() {
+    return request<T[]>('/fixed-expenses');
+  },
+  createFixedExpense<T>(payload: FixedExpensePayload) {
+    return request<T>('/fixed-expenses', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateFixedExpense<T>(id: string, payload: Partial<FixedExpensePayload>) {
+    return request<T>(`/fixed-expenses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  deleteFixedExpense(id: string) {
+    return request<{ ok: boolean }>(`/fixed-expenses/${id}`, { method: 'DELETE' });
+  },
+
+  listBills<T>() {
+    return request<T[]>('/bills');
+  },
+  createBill<T>(payload: BillPayload) {
+    return request<T>('/bills', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateBill<T>(id: string, payload: Partial<BillPayload>) {
+    return request<T>(`/bills/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  payBill<T>(id: string) {
+    return request<T>(`/bills/${id}/pay`, { method: 'POST' });
+  },
+  unpayBill<T>(id: string) {
+    return request<T>(`/bills/${id}/unpay`, { method: 'POST' });
+  },
+  deleteBill(id: string) {
+    return request<{ ok: boolean }>(`/bills/${id}`, { method: 'DELETE' });
+  },
+
+  listInvoices<T>() {
+    return request<T[]>('/invoices');
+  },
+  createInvoice<T>(payload: InvoicePayload) {
+    return request<T>('/invoices', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateInvoice<T>(id: string, payload: Partial<InvoicePayload>) {
+    return request<T>(`/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  deleteInvoice(id: string) {
+    return request<{ ok: boolean }>(`/invoices/${id}`, { method: 'DELETE' });
   },
 };

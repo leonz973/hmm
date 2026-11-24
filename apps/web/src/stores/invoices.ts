@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
 import { computed, ref, watch } from 'vue';
 import { delBlob, putBlob } from '@/lib/idb';
 import { loadJSON, saveJSON, todayISO, uid } from '@/lib/persist';
@@ -64,9 +66,26 @@ export const useInvoicesStore = defineStore('invoices', () => {
   const items = ref<Invoice[]>([]);
   const loaded = ref(false);
 
+  const auth = useAuthStore();
+  const syncing = ref(false);
+
+  async function hydrateFromCloud() {
+    syncing.value = true;
+    try {
+      items.value = await api.listInvoices<Invoice>();
+    } finally {
+      syncing.value = false;
+    }
+  }
+
   function load() {
     if (loaded.value) return;
     loaded.value = true;
+
+    if (auth.isCloud) {
+      void hydrateFromCloud();
+      return;
+    }
     const stored = loadJSON<Invoice[] | null>(STORAGE_KEY, null);
     items.value = Array.isArray(stored) ? stored : seed();
   }
@@ -74,7 +93,9 @@ export const useInvoicesStore = defineStore('invoices', () => {
   watch(
     items,
     (v) => {
-      if (loaded.value) saveJSON(STORAGE_KEY, v);
+      if (!loaded.value) return;
+      if (auth.isCloud) return;
+      saveJSON(STORAGE_KEY, v);
     },
     { deep: true },
   );
@@ -109,11 +130,33 @@ export const useInvoicesStore = defineStore('invoices', () => {
       }
     }
 
+    if (auth.isCloud) {
+      const saved = await api.createInvoice<Invoice>({
+        seller: invoice.seller,
+        title: invoice.title,
+        amountFen: invoice.amountFen,
+        date: invoice.date,
+        kind: invoice.kind,
+        number: invoice.number,
+        assetIds: invoice.assetIds,
+        fileName: invoice.fileName,
+        fileType: invoice.fileType,
+        fileSize: invoice.fileSize,
+        blobKey: invoice.blobKey,
+        note: invoice.note,
+      });
+      items.value.unshift(saved);
+      return saved.id;
+    }
+
     items.value.push(invoice);
     return id;
   }
 
   async function remove(id: string) {
+    if (auth.isCloud) {
+      await api.deleteInvoice(id);
+    }
     const target = items.value.find((i) => i.id === id);
     if (target?.blobKey) {
       try {
@@ -125,7 +168,13 @@ export const useInvoicesStore = defineStore('invoices', () => {
     items.value = items.value.filter((i) => i.id !== id);
   }
 
-  function linkAssets(id: string, assetIds: string[]) {
+  async function linkAssets(id: string, assetIds: string[]) {
+    if (auth.isCloud) {
+      const saved = await api.updateInvoice<Invoice>(id, { assetIds });
+      const i = items.value.findIndex((x) => x.id === id);
+      if (i >= 0) items.value[i] = saved;
+      return;
+    }
     const inv = items.value.find((i) => i.id === id);
     if (inv) inv.assetIds = assetIds;
   }
@@ -141,6 +190,8 @@ export const useInvoicesStore = defineStore('invoices', () => {
   return {
     items,
     loaded,
+    syncing,
+    hydrateFromCloud,
     sorted,
     totalFen,
     thisYearFen,

@@ -123,8 +123,8 @@ async function joinFamily() {
 async function doLogout() {
   if (!confirm('退出登录？退出后这台设备回到本地模式，云端数据不会丢。')) return;
   await auth.logout();
-  await assets.hydrateFromCloud().catch(() => undefined);
-  flash('已退出，当前为本地模式');
+  // 整页重载：否则内存里还留着云端那几块数据
+  location.assign('/');
 }
 
 function onExportJSON() {

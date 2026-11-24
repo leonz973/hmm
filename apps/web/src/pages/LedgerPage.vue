@@ -69,7 +69,7 @@ function openExpense(item?: FixedExpense) {
   expenseModal.value = true;
 }
 
-function saveExpense() {
+async function saveExpense() {
   const amount = Math.round(Number(expenseForm.amountYuan) * 100);
   if (!expenseForm.name.trim()) return void (expenseError.value = '填个名称');
   if (!Number.isFinite(amount) || amount <= 0) return void (expenseError.value = '金额要大于 0');
@@ -84,8 +84,8 @@ function saveExpense() {
     autoPay: expenseForm.autoPay,
     note: expenseForm.note.trim() || undefined,
   };
-  if (editingExpenseId.value) fixed.update(editingExpenseId.value, payload);
-  else fixed.create(payload);
+  if (editingExpenseId.value) await fixed.update(editingExpenseId.value, payload);
+  else await fixed.create(payload);
   expenseModal.value = false;
 }
 
@@ -125,13 +125,13 @@ function openBill() {
   billModal.value = true;
 }
 
-function saveBill() {
+async function saveBill() {
   const amount = Math.round(Number(billForm.amountYuan) * 100);
   if (!Number.isFinite(amount) || amount <= 0) return void (billError.value = '金额要大于 0');
   if (!billForm.period) return void (billError.value = '选账期');
   if (!billForm.dueDate) return void (billError.value = '选缴费截止日');
 
-  bills.create({
+  await bills.create({
     type: billForm.type,
     period: billForm.period,
     amountFen: amount,

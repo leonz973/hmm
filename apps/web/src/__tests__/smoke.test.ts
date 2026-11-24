@@ -9,6 +9,7 @@ import CalendarPage from '@/pages/CalendarPage.vue';
 import LedgerPage from '@/pages/LedgerPage.vue';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import AssetFormPage from '@/pages/AssetFormPage.vue';
+import LoginPage from '@/pages/LoginPage.vue';
 
 /** 页面能不能真正挂载渲染 —— 构建通过不等于运行时不出错 */
 async function mountPage(component: any) {
@@ -70,5 +71,13 @@ describe('页面挂载冒烟', () => {
     const html = w.html();
     expect(html).toContain('提醒设置');
     expect(html).toContain('导出');
+  });
+
+  it('登录页有登录/注册两种模式', async () => {
+    const w = await mountPage(LoginPage);
+    const html = w.html();
+    expect(html).toContain('云同步');
+    expect(html).toContain('注册一个');
+    expect(html).toContain('稍后再说');
   });
 });

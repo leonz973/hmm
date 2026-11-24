@@ -49,12 +49,12 @@ describe('账单：环比与未缴金额', () => {
     expect(store.monthOverMonth('2026-10')).toBeNull();
   });
 
-  it('未缴合计只算没标记已缴的', () => {
+  it('未缴合计只算没标记已缴的', async () => {
     const store = useBillsStore();
     store.load();
     store.clearAll();
-    const a = store.create({ type: '水费', period: '2026-11', amountFen: 8000, dueDate: '2026-11-25' });
-    store.create({ type: '燃气费', period: '2026-11', amountFen: 12000, dueDate: '2026-11-25' });
+    const a = await store.create({ type: '水费', period: '2026-11', amountFen: 8000, dueDate: '2026-11-25' });
+    await store.create({ type: '燃气费', period: '2026-11', amountFen: 12000, dueDate: '2026-11-25' });
 
     expect(store.unpaidFen).toBe(20000);
     store.markPaid(a, '2026-11-20');

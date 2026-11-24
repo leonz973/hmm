@@ -19,9 +19,9 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  memberships  Membership[]
-  ownedHouses  Household[]  @relation("HouseholdOwner")
-  auditLogs    AuditLog[]
+  memberships   Membership[]
+  ownedHouses   Household[]    @relation("HouseholdOwner")
+  auditLogs     AuditLog[]
   refreshTokens RefreshToken[]
 }
 
@@ -35,18 +35,19 @@ model Household {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  owner       User          @relation("HouseholdOwner", fields: [ownerUserId], references: [id])
-  memberships Membership[]
-  categories  Category[]
-  locations   Location[]
-  assets      Asset[]
-  fixedExpenses FixedExpense[]
+  owner          User            @relation("HouseholdOwner", fields: [ownerUserId], references: [id])
+  memberships    Membership[]
+  categories     Category[]
+  locations      Location[]
+  assets         Asset[]
+  fixedExpenses  FixedExpense[]
   expenseRecords ExpenseRecord[]
-  utilityBills UtilityBill[]
-  invoices    Invoice[]
-  attachments Attachment[]
-  reminders   Reminder[]
-  auditLogs   AuditLog[]
+  utilityBills   UtilityBill[]
+  invoices       Invoice[]
+  invoiceAssets  InvoiceAsset[]
+  reminders      Reminder[]
+  auditLogs      AuditLog[]
+  attachments    Attachment[]
 }
 
 model Membership {
@@ -63,27 +64,27 @@ model Membership {
 }
 
 model Category {
-  id                     String  @id @default(cuid())
-  householdId            String? // null = 内置全局品类（只读种子）
-  parentId               String?
-  key                    String? // 内置品类的稳定 key
-  name                   String
-  icon                   String?
-  defaultLifeMonths      Int?
-  defaultWarrantyMonths  Int?
-  inflationRate          Float? // 年通胀率 %（SQLite 用 Float）
-  isBuiltin              Boolean @default(false)
+  id                    String  @id @default(cuid())
+  householdId           String? // null = 内置全局品类（只读种子）
+  parentId              String?
+  key                   String? // 内置品类的稳定 key
+  name                  String
+  icon                  String?
+  defaultLifeMonths     Int?
+  defaultWarrantyMonths Int?
+  inflationRate         Float? // 年通胀率 %（SQLite 用 Float）
+  isBuiltin             Boolean @default(false)
 
   household Household? @relation(fields: [householdId], references: [id])
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryTree")
-  assets   Asset[]
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryTree")
+  assets    Asset[]
 
   @@unique([householdId, key])
 }
 
 model Location {
-  id          String  @id @default(cuid())
+  id          String @id @default(cuid())
   householdId String
   name        String
 
@@ -92,7 +93,7 @@ model Location {
 }
 
 model Asset {
-  id                      String   @id @default(cuid())
+  id                      String    @id @default(cuid())
   householdId             String
   name                    String
   categoryId              String?
@@ -106,23 +107,24 @@ model Asset {
   sn                      String?
   purchaseDate            String? // YYYY-MM-DD
   priceFen                Int? // 购买价（分）
-  qty                     Int      @default(1)
+  qty                     Int       @default(1)
   locationId              String?
   locationName            String? // 房间名字（如「厨房」），先存文本，后续可归到 Location 表
-  status                  String   @default("in_use") // in_use|replaced|scrapped|donated|sold
+  status                  String    @default("in_use") // in_use|replaced|scrapped|donated|sold
   usageLevel              String? // low|mid|high
   expectedReplacementDate String? // YYYY-MM-DD（推算结果，可手改）
   estReplacementPriceFen  Int? // 预估更换价（分）
   replacedByAssetId       String?
   createdBy               String
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
   deletedAt               DateTime?
 
-  household  Household  @relation(fields: [householdId], references: [id])
-  category   Category?  @relation(fields: [categoryId], references: [id])
-  location   Location?  @relation(fields: [locationId], references: [id])
-  warranties Warranty[]
+  household     Household      @relation(fields: [householdId], references: [id])
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  location      Location?      @relation(fields: [locationId], references: [id])
+  warranties    Warranty[]
+  invoiceAssets InvoiceAsset[]
 }
 
 model Warranty {
@@ -139,20 +141,22 @@ model Warranty {
 }
 
 model FixedExpense {
-  id            String    @id @default(cuid())
-  householdId   String
-  name          String
-  amountFen     Int
-  cycle         String // month|quarter|half_year|year|custom_days
-  customDays    Int?
-  firstDueDate  String // YYYY-MM-DD
-  account       String?
-  autoPay       Boolean   @default(false)
-  active        Boolean   @default(true)
-  endDate       String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+  id          String    @id @default(cuid())
+  householdId String
+  name        String
+  amountFen   Int
+  cycle       String // 每月|每季|每半年|每年
+  customDays  Int?
+  dueDate     String // YYYY-MM-DD 首次扣款日
+  category    String?
+  note        String?
+  account     String?
+  autoPay     Boolean   @default(false)
+  active      Boolean   @default(true)
+  endDate     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   household      Household       @relation(fields: [householdId], references: [id])
   expenseRecords ExpenseRecord[]
@@ -174,18 +178,21 @@ model ExpenseRecord {
 }
 
 model UtilityBill {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   householdId String
-  type        String // water|electricity|gas|property
-  periodStart String
-  periodEnd   String
+  type        String // 水费|电费|燃气费|物业费|其他
+  period      String? // YYYY-MM
+  periodStart String?
+  periodEnd   String?
+  dueDate     String?
+  paidDate    String?
   amountFen   Int
   usage       String?
   reading     String?
   invoiceId   String?
   note        String?
   createdBy   String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   deletedAt   DateTime?
 
   household Household @relation(fields: [householdId], references: [id])
@@ -193,9 +200,11 @@ model UtilityBill {
 }
 
 model Invoice {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   householdId String
-  files       String @default("[]") // JSON 字符串：[{objectKey,size,mime}]
+  files       String    @default("[]") // JSON 字符串：[{name,type,size,key}]
+  title       String?
+  kind        String?
   amountFen   Int?
   invoiceDate String?
   merchant    String?
@@ -203,11 +212,24 @@ model Invoice {
   note        String?
   reimbursed  Boolean?
   createdBy   String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   deletedAt   DateTime?
 
-  household    Household     @relation(fields: [householdId], references: [id])
+  household    Household      @relation(fields: [householdId], references: [id])
   utilityBills UtilityBill[]
+  assets       InvoiceAsset[]
+}
+
+model InvoiceAsset {
+  invoiceId String
+  assetId   String
+
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  asset       Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  household   Household? @relation(fields: [householdId], references: [id])
+  householdId String?
+
+  @@id([invoiceId, assetId])
 }
 
 model Attachment {

@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
 import { computed, ref, watch } from 'vue';
 import { currentMonth, loadJSON, saveJSON, todayISO, uid } from '@/lib/persist';
 
@@ -76,9 +78,26 @@ export const useBillsStore = defineStore('bills', () => {
   const items = ref<Bill[]>([]);
   const loaded = ref(false);
 
+  const auth = useAuthStore();
+  const syncing = ref(false);
+
+  async function hydrateFromCloud() {
+    syncing.value = true;
+    try {
+      items.value = await api.listBills<Bill>();
+    } finally {
+      syncing.value = false;
+    }
+  }
+
   function load() {
     if (loaded.value) return;
     loaded.value = true;
+
+    if (auth.isCloud) {
+      void hydrateFromCloud();
+      return;
+    }
     const stored = loadJSON<Bill[] | null>(STORAGE_KEY, null);
     items.value = Array.isArray(stored) ? stored : seed();
   }
@@ -86,7 +105,9 @@ export const useBillsStore = defineStore('bills', () => {
   watch(
     items,
     (v) => {
-      if (loaded.value) saveJSON(STORAGE_KEY, v);
+      if (!loaded.value) return;
+      if (auth.isCloud) return;
+      saveJSON(STORAGE_KEY, v);
     },
     { deep: true },
   );
@@ -138,23 +159,48 @@ export const useBillsStore = defineStore('bills', () => {
     return Math.round(((cur - prev) / prev) * 1000) / 10;
   }
 
-  function create(input: Omit<Bill, 'id' | 'createdAt'>): string {
+  async function create(input: Omit<Bill, 'id' | 'createdAt'>): Promise<string> {
+    if (auth.isCloud) {
+      const saved = await api.createBill<Bill>({
+        type: input.type,
+        period: input.period,
+        amountFen: input.amountFen,
+        usage: input.usage === undefined ? undefined : String(input.usage),
+        dueDate: input.dueDate,
+        note: input.note,
+      });
+      items.value.push(saved);
+      return saved.id;
+    }
     const id = uid();
     items.value.push({ ...input, id, createdAt: new Date().toISOString() });
     return id;
   }
 
-  function markPaid(id: string, date = todayISO()) {
+  async function markPaid(id: string, date = todayISO()) {
+    if (auth.isCloud) {
+      const saved = await api.payBill<Bill>(id);
+      const i = items.value.findIndex((x) => x.id === id);
+      if (i >= 0) items.value[i] = saved;
+      return;
+    }
     const b = items.value.find((x) => x.id === id);
     if (b) b.paidDate = date;
   }
 
-  function markUnpaid(id: string) {
+  async function markUnpaid(id: string) {
+    if (auth.isCloud) {
+      const saved = await api.unpayBill<Bill>(id);
+      const i = items.value.findIndex((x) => x.id === id);
+      if (i >= 0) items.value[i] = saved;
+      return;
+    }
     const b = items.value.find((x) => x.id === id);
     if (b) b.paidDate = undefined;
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
+    if (auth.isCloud) await api.deleteBill(id);
     items.value = items.value.filter((b) => b.id !== id);
   }
 
@@ -169,6 +215,8 @@ export const useBillsStore = defineStore('bills', () => {
   return {
     items,
     loaded,
+    syncing,
+    hydrateFromCloud,
     views,
     byPeriod,
     months,

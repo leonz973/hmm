@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
 import { computed, ref, watch } from 'vue';
 import { addMonths, daysUntil, loadJSON, saveJSON, todayISO, uid } from '@/lib/persist';
 
@@ -84,9 +86,25 @@ export const useFixedExpensesStore = defineStore('fixedExpenses', () => {
   const items = ref<FixedExpense[]>([]);
   const loaded = ref(false);
 
+  const auth = useAuthStore();
+  const syncing = ref(false);
+
+  async function hydrateFromCloud() {
+    syncing.value = true;
+    try {
+      items.value = await api.listFixedExpenses<FixedExpense>();
+    } finally {
+      syncing.value = false;
+    }
+  }
+
   function load() {
     if (loaded.value) return;
     loaded.value = true;
+    if (auth.isCloud) {
+      void hydrateFromCloud();
+      return;
+    }
     const stored = loadJSON<FixedExpense[] | null>(STORAGE_KEY, null);
     items.value = Array.isArray(stored) ? stored : seed();
   }
@@ -94,7 +112,9 @@ export const useFixedExpensesStore = defineStore('fixedExpenses', () => {
   watch(
     items,
     (v) => {
-      if (loaded.value) saveJSON(STORAGE_KEY, v);
+      if (!loaded.value) return;
+      if (auth.isCloud) return;
+      saveJSON(STORAGE_KEY, v);
     },
     { deep: true },
   );
@@ -143,18 +163,38 @@ export const useFixedExpensesStore = defineStore('fixedExpenses', () => {
     return out;
   });
 
-  function create(input: Omit<FixedExpense, 'id' | 'createdAt'>): string {
+  async function create(input: Omit<FixedExpense, 'id' | 'createdAt'>): Promise<string> {
+    if (auth.isCloud) {
+      const saved = await api.createFixedExpense<FixedExpense>({
+        name: input.name,
+        amountFen: input.amountFen,
+        cycle: input.cycle,
+        dueDate: input.dueDate,
+        category: input.category,
+        autoPay: input.autoPay,
+        note: input.note,
+      });
+      items.value.push(saved);
+      return saved.id;
+    }
     const id = uid();
     items.value.push({ ...input, id, createdAt: new Date().toISOString() });
     return id;
   }
 
-  function update(id: string, patch: Partial<FixedExpense>) {
+  async function update(id: string, patch: Partial<FixedExpense>) {
+    if (auth.isCloud) {
+      const saved = await api.updateFixedExpense<FixedExpense>(id, patch);
+      const i = items.value.findIndex((f) => f.id === id);
+      if (i >= 0) items.value[i] = saved;
+      return;
+    }
     const i = items.value.findIndex((f) => f.id === id);
     if (i >= 0) items.value[i] = { ...items.value[i], ...patch, id };
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
+    if (auth.isCloud) await api.deleteFixedExpense(id);
     items.value = items.value.filter((f) => f.id !== id);
   }
 
@@ -169,6 +209,8 @@ export const useFixedExpensesStore = defineStore('fixedExpenses', () => {
   return {
     items,
     loaded,
+    syncing,
+    hydrateFromCloud,
     views,
     monthlyTotalFen,
     annualTotalFen,
