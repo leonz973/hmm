@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute, RouterView } from 'vue-router';
+import { useRoute, useRouter, RouterView } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import {
   PhHouse as HouseIcon,
   PhArmchair as Armchair,
@@ -10,6 +11,19 @@ import {
 } from '@phosphor-icons/vue';
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+const showTabs = computed(() => route.name !== 'login');
+
+const accountLabel = computed(() => {
+  if (!auth.isCloud) return '本地模式';
+  return auth.household?.name ?? '我的家';
+});
+
+function onAccountClick() {
+  void router.push(auth.isCloud ? '/settings' : '/login');
+}
 
 const tabs = [
   { path: '/', label: '首页', icon: HouseIcon },
@@ -32,11 +46,16 @@ const current = computed(() => route.path);
           <div class="tiny">把家当记清楚 · 管明白 · 换得从容</div>
         </div>
       </div>
-      <div class="family-chip">
-        <span class="dot" />
-        我的家
-      </div>
+      <button class="family-chip" type="button" @click="onAccountClick">
+        <span class="dot" :class="{ cloud: auth.isCloud }" />
+        {{ accountLabel }}
+      </button>
     </header>
+
+    <div v-if="!auth.isCloud && route.name !== 'login'" class="local-hint">
+      <span>本地模式：数据只存在这台设备</span>
+      <button type="button" @click="router.push('/login')">开启云同步</button>
+    </div>
 
     <main class="content">
       <RouterView v-slot="{ Component }">
@@ -44,7 +63,7 @@ const current = computed(() => route.path);
       </RouterView>
     </main>
 
-    <nav class="tabbar" aria-label="主导航">
+    <nav v-if="showTabs" class="tabbar" aria-label="主导航">
       <RouterLink
         v-for="tab in tabs"
         :key="tab.path"
@@ -64,6 +83,28 @@ const current = computed(() => route.path);
   min-height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.local-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-accent);
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  padding: 6px var(--space-md);
+}
+
+.local-hint button {
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 .topbar {
@@ -108,6 +149,9 @@ const current = computed(() => route.path);
 }
 
 .family-chip {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -118,6 +162,10 @@ const current = computed(() => route.path);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.dot.cloud {
+  background: var(--color-primary);
 }
 
 .dot {
@@ -190,7 +238,29 @@ const current = computed(() => route.path);
     margin-left: 88px;
     padding: var(--space-lg);
   }
-  .topbar {
+  .local-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-accent);
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  padding: 6px var(--space-md);
+}
+
+.local-hint button {
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.topbar {
     padding-left: calc(88px + var(--space-lg));
   }
 }

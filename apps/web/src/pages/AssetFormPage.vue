@@ -122,7 +122,7 @@ function validate(): boolean {
   return Object.keys(errors).length === 0;
 }
 
-function submit() {
+async function submit() {
   if (!validate()) return;
   const payload = {
     name: form.name.trim(),
@@ -137,18 +137,18 @@ function submit() {
     notes: form.notes.trim() || undefined,
   };
   if (editingId.value) {
-    store.update(editingId.value, payload);
+    await store.update(editingId.value, payload);
   } else {
-    store.create(payload);
+    await store.create(payload);
   }
   saved.value = true;
   setTimeout(() => void router.push('/assets'), 260);
 }
 
-function removeAsset() {
+async function removeAsset() {
   if (!editingId.value) return;
   if (confirm('确定删除这件资产？删除后无法恢复。')) {
-    store.remove(editingId.value);
+    await store.remove(editingId.value);
     void router.push('/assets');
   }
 }

@@ -9,6 +9,8 @@ import CalendarPage from './pages/CalendarPage.vue';
 import LedgerPage from './pages/LedgerPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
 import AssetFormPage from './pages/AssetFormPage.vue';
+import LoginPage from './pages/LoginPage.vue';
+import { useAuthStore } from './stores/auth';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -25,8 +27,15 @@ const router = createRouter({
     { path: '/calendar', name: 'calendar', component: CalendarPage, meta: { title: '日历' } },
     { path: '/receipts', name: 'receipts', component: LedgerPage, meta: { title: '账目' } },
     { path: '/settings', name: 'settings', component: SettingsPage, meta: { title: '我的' } },
+    { path: '/login', name: 'login', component: LoginPage, meta: { title: '登录' } },
   ],
   scrollBehavior: () => ({ top: 0 }),
 });
 
-createApp(App).use(createPinia()).use(router).mount('#app');
+const pinia = createPinia();
+const app = createApp(App).use(pinia).use(router);
+
+// 先恢复登录态再挂载：否则首屏会在「本地模式」和「云同步」之间闪一下
+void useAuthStore(pinia)
+  .init()
+  .finally(() => app.mount('#app'));

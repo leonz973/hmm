@@ -10,9 +10,7 @@
     "target": "ES2022",
     "sourceMap": true,
     "incremental": true,
-    "paths": {
-      "@hmm/shared": ["../../packages/shared/src/main.ts"]
-    }
+    "rootDir": "./src"
   },
-  "include": ["src", "prisma"]
+  "include": ["src"]
 }

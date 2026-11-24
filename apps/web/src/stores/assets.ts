@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import { api, type AssetPayload } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
 import {
   BUILTIN_CATEGORIES,
   calcReplacementDate,
@@ -94,10 +96,33 @@ function seedAssets(): StoredAsset[] {
 export const useAssetsStore = defineStore('assets', () => {
   const items = ref<StoredAsset[]>([]);
   const loaded = ref(false);
+  const auth = useAuthStore();
+  const syncing = ref(false);
+  const syncError = ref('');
+
+  /** 云模式：从服务器拉一份覆盖本地缓存 */
+  async function hydrateFromCloud() {
+    syncing.value = true;
+    syncError.value = '';
+    try {
+      const rows = await api.listAssets<StoredAsset>();
+      items.value = rows;
+    } catch (e) {
+      syncError.value = e instanceof Error ? e.message : '同步失败';
+    } finally {
+      syncing.value = false;
+    }
+  }
 
   function load() {
     if (loaded.value) return;
     loaded.value = true;
+
+    if (auth.isCloud) {
+      // 登录状态下不要塞示例数据：否则换台设备会先看到假的资产
+      void hydrateFromCloud();
+      return;
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -117,6 +142,8 @@ export const useAssetsStore = defineStore('assets', () => {
     items,
     (value) => {
       if (!loaded.value) return;
+      // 云模式下列表是服务器的真相，不写本地缓存：否则退出登录后还能看到别人家的数据
+      if (auth.isCloud) return;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
       } catch {
@@ -161,20 +188,47 @@ export const useAssetsStore = defineStore('assets', () => {
     return items.value.find((a) => a.id === id);
   }
 
-  function create(input: Omit<StoredAsset, 'id' | 'createdAt' | 'updatedAt'>): string {
+  function toPayload(input: Partial<StoredAsset>): AssetPayload {
+    return {
+      name: input.name ?? '',
+      categoryKey: input.categoryKey,
+      categoryName: input.categoryName,
+      location: input.location,
+      purchaseDate: input.purchaseDate,
+      priceFen: input.priceFen,
+      warrantyMonths: input.warrantyMonths,
+      expectedLifeMonths: input.expectedLifeMonths,
+      usageLevel: input.usageLevel,
+      note: input.notes,
+    };
+  }
+
+  async function create(input: Omit<StoredAsset, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    if (auth.isCloud) {
+      const saved = await api.createAsset<StoredAsset>(toPayload(input));
+      items.value = [saved, ...items.value];
+      return saved.id;
+    }
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     items.value.push({ ...input, id, createdAt: now, updatedAt: now });
     return id;
   }
 
-  function update(id: string, patch: Partial<StoredAsset>) {
+  async function update(id: string, patch: Partial<StoredAsset>) {
+    if (auth.isCloud) {
+      const saved = await api.updateAsset<StoredAsset>(id, toPayload(patch));
+      const idx = items.value.findIndex((a) => a.id === id);
+      if (idx >= 0) items.value[idx] = saved;
+      return;
+    }
     const idx = items.value.findIndex((a) => a.id === id);
     if (idx < 0) return;
     items.value[idx] = { ...items.value[idx], ...patch, id, updatedAt: new Date().toISOString() };
   }
 
-  function remove(id: string) {
+  async function remove(id: string) {
+    if (auth.isCloud) await api.deleteAsset(id);
     items.value = items.value.filter((a) => a.id !== id);
   }
 
@@ -194,6 +248,9 @@ export const useAssetsStore = defineStore('assets', () => {
   return {
     items,
     loaded,
+    syncing,
+    syncError,
+    hydrateFromCloud,
     views,
     sortedViews,
     totalValueFen,

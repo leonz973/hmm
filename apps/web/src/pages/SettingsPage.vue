@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   PhSun as Sun,
   PhMoon as Moon,
@@ -10,8 +11,12 @@ import {
   PhSignOut as SignOut,
   PhTrash as Trash,
   PhFileCsv as FileCsv,
+  PhCloudArrowUp as CloudIcon,
+  PhCopy as Copy,
 } from '@phosphor-icons/vue';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
+import { useAuthStore } from '@/stores/auth';
+import { useAssetsStore } from '@/stores/assets';
 import {
   REPLACE_LEAD_OPTIONS,
   WARRANTY_LEAD_OPTIONS,
@@ -19,7 +24,23 @@ import {
 } from '@/stores/prefs';
 
 const prefs = usePrefsStore();
+const auth = useAuthStore();
+const assets = useAssetsStore();
+const router = useRouter();
 const remindModal = ref(false);
+const familyModal = ref(false);
+const inviteCode = ref('');
+const joinCode = ref('');
+const familyBusy = ref(false);
+const familyError = ref('');
+
+const accountName = computed(() => auth.user?.displayName ?? '我的家');
+const accountSub = computed(() =>
+  auth.isCloud
+    ? `${auth.user?.email ?? ''} · ${auth.household?.name ?? ''}`
+    : '本地模式：数据存在这台设备的浏览器里',
+);
+const memberCount = computed(() => auth.household?.members.length ?? 0);
 
 const theme = ref<'light' | 'dark'>('light');
 const health = ref<'checking' | 'ok' | 'fail'>('checking');
@@ -57,7 +78,54 @@ async function ping() {
   }
 }
 
-const healthText = { checking: '检测中…', ok: 'API 正常', fail: '本地模式' };
+const healthText = { checking: '检测中…', ok: 'API 正常', fail: '连接失败' };
+
+async function createInvite() {
+  familyBusy.value = true;
+  familyError.value = '';
+  try {
+    const res = await auth.invite();
+    inviteCode.value = res.code;
+  } catch (e) {
+    familyError.value = e instanceof Error ? e.message : '生成邀请码失败';
+  } finally {
+    familyBusy.value = false;
+  }
+}
+
+async function copyInvite() {
+  if (!inviteCode.value) return;
+  try {
+    await navigator.clipboard.writeText(inviteCode.value);
+    flash('邀请码已复制，发给家人即可');
+  } catch {
+    flash(`邀请码：${inviteCode.value}`);
+  }
+}
+
+async function joinFamily() {
+  const code = joinCode.value.trim();
+  if (!code) return;
+  familyBusy.value = true;
+  familyError.value = '';
+  try {
+    const res = await auth.join(code);
+    joinCode.value = '';
+    await assets.hydrateFromCloud();
+    flash(res.already ? '你已经在这个家里了' : `已加入「${res.name}」`);
+  } catch (e) {
+    familyError.value = e instanceof Error ? e.message : '加入失败';
+  } finally {
+    familyBusy.value = false;
+  }
+}
+
+async function doLogout() {
+  if (!confirm('退出登录？退出后这台设备回到本地模式，云端数据不会丢。')) return;
+  await auth.logout();
+  await assets.hydrateFromCloud().catch(() => undefined);
+  flash('已退出，当前为本地模式');
+}
 
 function onExportJSON() {
   exportJSON();
@@ -96,12 +164,23 @@ function onClear() {
     <h1>我的</h1>
 
     <section class="card profile">
-      <div class="avatar">我</div>
-      <div>
-        <div class="name">我的家</div>
-        <div class="tiny">数据存在这台设备的浏览器里</div>
+      <div class="avatar">{{ accountName.slice(0, 1) }}</div>
+      <div class="who">
+        <div class="name">{{ accountName }}</div>
+        <div class="tiny">{{ accountSub }}</div>
       </div>
       <span class="status" :class="health">{{ healthText[health] }}</span>
+    </section>
+
+    <section v-if="!auth.isCloud" class="card cloud-cta">
+      <div class="cta-text">
+        <strong>开启云同步</strong>
+        <p class="tiny">登录后数据存到服务器，家人在手机上也能看到同一份账。</p>
+      </div>
+      <button class="mini primary" type="button" @click="router.push('/login')">
+        <CloudIcon :size="16" />
+        登录 / 注册
+      </button>
     </section>
 
     <section class="card">
@@ -110,10 +189,12 @@ function onClear() {
         <span>外观</span>
         <span class="tiny">{{ theme === 'light' ? '浅色' : '深色' }}</span>
       </button>
-      <button class="row" type="button" disabled>
+      <button class="row" type="button" @click="familyModal = true">
         <Users :size="18" />
         <span>家庭成员</span>
-        <span class="tiny">需登录后开放</span>
+        <span class="tiny">
+          {{ auth.isCloud ? `${memberCount} 人 · 邀请码` : '登录后可用' }}
+        </span>
       </button>
       <button class="row" type="button" @click="remindModal = true">
         <Bell :size="18" />
@@ -152,14 +233,65 @@ function onClear() {
     </section>
 
     <section class="card">
-      <button class="row danger" type="button" disabled>
+      <button class="row danger" type="button" :disabled="!auth.isCloud" @click="doLogout">
         <SignOut :size="18" />
         <span>退出登录</span>
-        <span class="tiny">需登录后开放</span>
+        <span class="tiny">{{ auth.isCloud ? auth.user?.email : '当前未登录' }}</span>
       </button>
     </section>
 
     <p class="tiny center">HMM v0.1.0 · 本地可用版</p>
+
+    <div v-if="familyModal" class="overlay" @click.self="familyModal = false">
+      <div class="sheet">
+        <div class="sheet-head">
+          <strong>家庭成员</strong>
+          <button class="mini" type="button" @click="familyModal = false">关闭</button>
+        </div>
+
+        <template v-if="auth.isCloud">
+          <p class="tiny desc">「{{ auth.household?.name }}」共 {{ memberCount }} 人。同一个家的人看到同一份资产和账单，谁都能编辑。</p>
+          <ul class="members">
+            <li v-for="m in auth.household?.members" :key="m.userId">
+              <span class="avatar sm">{{ m.displayName.slice(0, 1) }}</span>
+              <span class="m-name">{{ m.displayName }}</span>
+              <span class="tiny">{{ m.role === 'owner' ? '户主' : m.role === 'admin' ? '管理' : '成员' }}</span>
+            </li>
+          </ul>
+
+          <div class="invite-box">
+            <div class="tiny">邀请家人（72 小时有效）</div>
+            <div class="invite-row">
+              <code>{{ inviteCode || '还没有生成' }}</code>
+              <button class="mini" type="button" :disabled="familyBusy" @click="createInvite">
+                {{ inviteCode ? '重新生成' : '生成邀请码' }}
+              </button>
+              <button v-if="inviteCode" class="mini" type="button" @click="copyInvite">
+                <Copy :size="14" />
+                复制
+              </button>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>加入别人的家？输入邀请码</span>
+            <div class="join-row">
+              <input v-model="joinCode" type="text" placeholder="8 位邀请码" maxlength="8" />
+              <button class="mini primary" type="button" :disabled="familyBusy" @click="joinFamily">加入</button>
+            </div>
+          </label>
+
+          <p v-if="familyError" class="err">{{ familyError }}</p>
+        </template>
+
+        <template v-else>
+          <p class="tiny desc">本地模式下没有家庭成员。登录后可以邀请家人加入同一个家庭空间。</p>
+          <button class="mini primary" type="button" @click="familyModal = false; router.push('/login')">
+            去登录
+          </button>
+        </template>
+      </div>
+    </div>
 
     <div v-if="remindModal" class="overlay" @click.self="remindModal = false">
       <div class="sheet">
@@ -217,6 +349,81 @@ function onClear() {
   padding: var(--space-lg);
   display: grid;
   gap: var(--space-md);
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.members li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.avatar.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+
+.invite-box {
+  display: grid;
+  gap: 6px;
+}
+
+.invite-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invite-row code {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: var(--radius-control);
+  background: var(--color-bg);
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.join-row {
+  display: flex;
+  gap: 8px;
+}
+
+.join-row input {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: 9px 10px;
+  font-size: 14px;
+}
+
+.err {
+  margin: 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.cloud-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  justify-content: space-between;
+}
+
+.cta-text p {
+  margin: 2px 0 0;
 }
 
 .sheet-head {

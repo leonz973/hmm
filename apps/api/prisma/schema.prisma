@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -22,6 +22,7 @@ model User {
   memberships  Membership[]
   ownedHouses  Household[]  @relation("HouseholdOwner")
   auditLogs    AuditLog[]
+  refreshTokens RefreshToken[]
 }
 
 model Household {
@@ -70,9 +71,10 @@ model Category {
   icon                   String?
   defaultLifeMonths      Int?
   defaultWarrantyMonths  Int?
-  inflationRate          Decimal? @db.Decimal(5, 2) // 年通胀率 %
+  inflationRate          Float? // 年通胀率 %（SQLite 用 Float）
   isBuiltin              Boolean @default(false)
 
+  household Household? @relation(fields: [householdId], references: [id])
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children Category[] @relation("CategoryTree")
   assets   Asset[]
@@ -94,6 +96,11 @@ model Asset {
   householdId             String
   name                    String
   categoryId              String?
+  categoryKey             String? // 内置品类 key（前端选择用）
+  categoryName            String? // 冗余存名字，品类改名不影响历史记录
+  warrantyMonths          Int? // 质保月数（录入时确认下来的值）
+  expectedLifeMonths      Int? // 预计寿命月数（含使用强度前的原始值）
+  note                    String?
   brand                   String?
   model                   String?
   sn                      String?
@@ -101,6 +108,7 @@ model Asset {
   priceFen                Int? // 购买价（分）
   qty                     Int      @default(1)
   locationId              String?
+  locationName            String? // 房间名字（如「厨房」），先存文本，后续可归到 Location 表
   status                  String   @default("in_use") // in_use|replaced|scrapped|donated|sold
   usageLevel              String? // low|mid|high
   expectedReplacementDate String? // YYYY-MM-DD（推算结果，可手改）
@@ -115,7 +123,6 @@ model Asset {
   category   Category?  @relation(fields: [categoryId], references: [id])
   location   Location?  @relation(fields: [locationId], references: [id])
   warranties Warranty[]
-  attachments Attachment[]
 }
 
 model Warranty {
@@ -188,7 +195,7 @@ model UtilityBill {
 model Invoice {
   id          String   @id @default(cuid())
   householdId String
-  files       Json // [{objectKey,size,mime}]
+  files       String @default("[]") // JSON 字符串：[{objectKey,size,mime}]
   amountFen   Int?
   invoiceDate String?
   merchant    String?
@@ -223,7 +230,7 @@ model Reminder {
   refId       String
   fireDate    String // YYYY-MM-DD
   severity    String    @default("info") // info|warn|urgent
-  payload     Json?
+  payload     String? // JSON 字符串
   readAt      DateTime?
   sentPushAt  DateTime?
   createdAt   DateTime  @default(now())
@@ -240,9 +247,23 @@ model AuditLog {
   action      String
   entity      String
   entityId    String?
-  detail      Json?
+  detail      String? // JSON 字符串
   at          DateTime @default(now())
 
   household Household @relation(fields: [householdId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
+}
+
+/// 刷新令牌（只存哈希，可撤销）
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

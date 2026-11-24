@@ -2,15 +2,18 @@
   "name": "@hmm/shared",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "./src/main.ts",
-  "types": "./src/main.ts",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
   "exports": {
-    ".": "./src/main.ts"
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "echo \"no tests yet\""
+    "test": "echo \"no tests yet\"",
+    "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "typescript": "^5.7.2"
