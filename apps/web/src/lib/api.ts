@@ -221,6 +221,34 @@ export const api = {
     });
   },
 
+  updateHouseholdSettings(payload: { warrantyLeadDays?: number; replaceLeadDays?: number; notifyEmail?: boolean }) {
+    return request<{
+      id: string;
+      name: string;
+      warrantyLeadDays: number;
+      replaceLeadDays: number;
+      notifyEmail: boolean;
+    }>('/households/current/settings', { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+
+  listReminders<T>() {
+    return request<{
+      items: T[];
+      warrantyLeadDays: number;
+      replaceLeadDays: number;
+      notifyEmail: boolean;
+      smtpConfigured: boolean;
+      lastRuns: Array<{ runDate: string; found: number; sent: number; status: string; message?: string | null }>;
+    }>('/reminders');
+  },
+
+  runReminders(dryRun = false) {
+    return request<{ created: number; sent: number; status: string; message?: string | null }>(
+      '/reminders/run',
+      { method: 'POST', body: JSON.stringify({ dryRun }) },
+    );
+  },
+
   createInvite() {
     return request<{ code: string; expiresAt: string }>('/households/invites', { method: 'POST' });
   },

@@ -14,6 +14,7 @@ import {
   PhCloudArrowUp as CloudIcon,
   PhCopy as Copy,
 } from '@phosphor-icons/vue';
+import { api } from '@/lib/api';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
 import { useAuthStore } from '@/stores/auth';
 import { useAssetsStore } from '@/stores/assets';
@@ -33,6 +34,9 @@ const inviteCode = ref('');
 const joinCode = ref('');
 const familyBusy = ref(false);
 const familyError = ref('');
+const notifyEmail = ref(true);
+const remindBusy = ref(false);
+const smtpReady = ref(true);
 
 const accountName = computed(() => auth.user?.displayName ?? '我的家');
 const accountSub = computed(() =>
@@ -52,7 +56,62 @@ onMounted(() => {
   apply();
   prefs.load();
   void ping();
+  void loadServerReminders();
 });
+
+/** 云端模式下把服务端的提醒设置拉回来（首页/日历与邮件口径一致） */
+async function loadServerReminders() {
+  if (!auth.isCloud) return;
+  try {
+    const data = await api.listReminders<unknown>();
+    prefs.setWarrantyLead(data.warrantyLeadDays);
+    prefs.setReplaceLead(data.replaceLeadDays);
+    notifyEmail.value = data.notifyEmail;
+    smtpReady.value = data.smtpConfigured;
+  } catch {
+    /* 拉不到就用本地设置，不打扰用户 */
+  }
+}
+
+/** 改提醒设置：本地立刻生效，登录后同步到服务器（服务器决定邮件） */
+async function saveRemind() {
+  if (!auth.isCloud) {
+    flash('已保存（本地模式，不会发邮件）');
+    return;
+  }
+  remindBusy.value = true;
+  try {
+    await api.updateHouseholdSettings({
+      warrantyLeadDays: prefs.warrantyLeadDays,
+      replaceLeadDays: prefs.replaceLeadDays,
+      notifyEmail: notifyEmail.value,
+    });
+    flash('提醒设置已同步到服务器');
+  } catch (e) {
+    flash((e as Error).message || '同步失败');
+  } finally {
+    remindBusy.value = false;
+  }
+}
+
+/** 立刻跑一次提醒（dryRun=false 才会真的发邮件） */
+async function sendTestReminder() {
+  if (!auth.isCloud) {
+    flash('登录并配置服务器邮箱后才能发邮件');
+    return;
+  }
+  remindBusy.value = true;
+  try {
+    const r = await api.runReminders(false);
+    if (r.sent > 0) flash(`已发送 ${r.sent} 封提醒邮件`);
+    else if (r.status === 'skipped') flash(`未发送：${r.message ?? '邮件未配置'}`);
+    else flash('当前没有需要提醒的事项');
+  } catch (e) {
+    flash((e as Error).message || '发送失败');
+  } finally {
+    remindBusy.value = false;
+  }
+}
 
 function apply() {
   document.documentElement.dataset.theme = theme.value;
@@ -321,7 +380,27 @@ function onClear() {
           </select>
         </label>
 
-        <p class="tiny">当前：{{ prefs.warrantyLeadDays }} 天 / {{ prefs.replaceLeadDays }} 天，改完立即生效。</p>
+        <label v-if="auth.isCloud" class="field switch-field">
+          <span>邮件提醒</span>
+          <input v-model="notifyEmail" type="checkbox" />
+        </label>
+
+        <p class="tiny">当前：{{ prefs.warrantyLeadDays }} 天 / {{ prefs.replaceLeadDays }} 天，改动即时生效。</p>
+        <p v-if="auth.isCloud && !smtpReady" class="tiny desc warn">
+          服务器还没配置发信邮箱（SMTP），现在只会记录提醒、不会真的发信。
+        </p>
+        <p v-if="!auth.isCloud" class="tiny desc">
+          本地模式不会发邮件。登录后可在服务器配置邮箱，由服务器每天 06:00 检查一次。
+        </p>
+
+        <div class="sheet-actions">
+          <button class="ghost" type="button" :disabled="remindBusy" @click="sendTestReminder">
+            测试提醒
+          </button>
+          <button class="primary" type="button" :disabled="remindBusy" @click="saveRemind">
+            保存
+          </button>
+        </div>
       </div>
     </div>
 
@@ -349,6 +428,52 @@ function onClear() {
   padding: var(--space-lg);
   display: grid;
   gap: var(--space-md);
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.sheet-actions button {
+  padding: 9px 16px;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.sheet-actions .ghost {
+  background: transparent;
+  border-color: var(--color-border, #e2e8e0);
+  color: var(--color-text);
+}
+
+.sheet-actions .primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sheet-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.warn {
+  color: var(--color-accent);
+}
+
+.switch-field {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.switch-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
 }
 
 .members {

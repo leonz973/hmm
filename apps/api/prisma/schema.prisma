@@ -31,6 +31,9 @@ model Household {
   ownerUserId String
   inviteCode  String?   @unique
   inviteExp   DateTime?
+  warrantyLeadDays Int @default(60)
+  replaceLeadDays  Int @default(90)
+  notifyEmail      Boolean @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -46,6 +49,7 @@ model Household {
   invoices       Invoice[]
   invoiceAssets  InvoiceAsset[]
   reminders      Reminder[]
+  reminderRuns   ReminderRunLog[]
   auditLogs      AuditLog[]
   attachments    Attachment[]
 }
@@ -255,11 +259,30 @@ model Reminder {
   payload     String? // JSON 字符串
   readAt      DateTime?
   sentPushAt  DateTime?
+  sentEmailAt DateTime?
+  emailTo     String?
   createdAt   DateTime  @default(now())
 
   household Household @relation(fields: [householdId], references: [id])
 
   @@unique([type, refId, fireDate])
+}
+
+model ReminderRunLog {
+  id          String   @id @default(cuid())
+  householdId String
+  runDate     String // YYYY-MM-DD
+  trigger     String // cron|manual
+  found       Int      @default(0)
+  created     Int      @default(0)
+  sent        Int      @default(0)
+  status      String   @default("ok") // ok|skipped|failed
+  message     String?
+  createdAt   DateTime @default(now())
+
+  household Household @relation(fields: [householdId], references: [id])
+
+  @@index([householdId, runDate])
 }
 
 model AuditLog {

@@ -21,3 +21,6 @@ Thumbs.db
 
 # meow-memory 记忆库（误删无法恢复，禁止提交/清理）
 .dsh-meow/
+
+# 本地邮件预览
+.mail-out/

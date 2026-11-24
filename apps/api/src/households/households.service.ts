@@ -102,4 +102,29 @@ export class HouseholdsService {
     });
     return { householdId: household.id, name: household.name, already: false };
   }
+
+  /** 提醒设置：只允许 owner/admin 改 */
+  async updateSettings(
+    userId: string,
+    headerId: string | undefined,
+    dto: { warrantyLeadDays?: number; replaceLeadDays?: number; notifyEmail?: boolean },
+  ) {
+    const { household, membership } = await this.resolve(userId, headerId);
+    if (membership.role === 'member') throw new ForbiddenException('普通成员不能改提醒设置');
+    const updated = await this.prisma.household.update({
+      where: { id: household.id },
+      data: {
+        warrantyLeadDays: dto.warrantyLeadDays,
+        replaceLeadDays: dto.replaceLeadDays,
+        notifyEmail: dto.notifyEmail,
+      },
+    });
+    return {
+      id: updated.id,
+      name: updated.name,
+      warrantyLeadDays: updated.warrantyLeadDays,
+      replaceLeadDays: updated.replaceLeadDays,
+      notifyEmail: updated.notifyEmail,
+    };
+  }
 }

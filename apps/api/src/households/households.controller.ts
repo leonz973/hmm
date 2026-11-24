@@ -36,6 +36,15 @@ export class HouseholdsController {
     return this.households.rename(user.userId, hid, dto.name);
   }
 
+  @Patch('current/settings')
+  updateSettings(
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() body: { warrantyLeadDays?: number; replaceLeadDays?: number; notifyEmail?: boolean },
+    @Headers('x-household-id') hid?: string,
+  ) {
+    return this.households.updateSettings(user.userId, hid, body ?? {});
+  }
+
   @Post('invites')
   invite(@CurrentUser() user: JwtPayloadUser, @Headers('x-household-id') hid?: string) {
     return this.households.createInvite(user.userId, hid);
