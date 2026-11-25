@@ -17,7 +17,7 @@ export class InvoicesService {
     private readonly households: HouseholdsService,
   ) {}
 
-  private toDto(i: {
+  toDto(i: {
     id: string;
     merchant: string | null;
     title: string | null;

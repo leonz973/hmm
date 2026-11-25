@@ -10,12 +10,15 @@ import {
   PhReceipt as Receipt,
 } from '@phosphor-icons/vue';
 import { blobUrl } from '@/lib/idb';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth';
 import { money, todayISO } from '@/lib/persist';
 import { INVOICE_KINDS, useInvoicesStore, type InvoiceKind } from '@/stores/invoices';
 import { useAssetsStore } from '@/stores/assets';
 
 const store = useInvoicesStore();
 const assets = useAssetsStore();
+const auth = useAuthStore();
 onMounted(() => {
   store.load();
   assets.load();
@@ -105,6 +108,17 @@ async function save() {
 
 async function openFile(blobKey?: string) {
   if (!blobKey) return;
+  if (auth.isCloud) {
+    try {
+      const blob = await api.downloadAttachment(blobKey);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      alert((e as Error).message || '附件打不开');
+    }
+    return;
+  }
   const url = await blobUrl(blobKey);
   if (url) window.open(url, '_blank');
 }

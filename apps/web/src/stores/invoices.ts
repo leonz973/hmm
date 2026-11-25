@@ -131,7 +131,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
     }
 
     if (auth.isCloud) {
-      const saved = await api.createInvoice<Invoice>({
+      let saved = await api.createInvoice<Invoice>({
         seller: invoice.seller,
         title: invoice.title,
         amountFen: invoice.amountFen,
@@ -145,6 +145,15 @@ export const useInvoicesStore = defineStore('invoices', () => {
         blobKey: invoice.blobKey,
         note: invoice.note,
       });
+      if (file) {
+        try {
+          const up = await api.uploadAttachment(file, 'invoice', saved.id);
+          if (up.invoice) saved = up.invoice as unknown as Invoice;
+          else saved = { ...saved, blobKey: up.attachment.id, fileName: up.attachment.name, fileType: up.attachment.type, fileSize: up.attachment.size };
+        } catch {
+          // 附件上传失败不该丢掉整张发票
+        }
+      }
       items.value.unshift(saved);
       return saved.id;
     }
@@ -155,6 +164,10 @@ export const useInvoicesStore = defineStore('invoices', () => {
 
   async function remove(id: string) {
     if (auth.isCloud) {
+      const cloud = items.value.find((i) => i.id === id);
+      if (cloud?.blobKey) {
+        await api.deleteAttachment(cloud.blobKey).catch(() => null);
+      }
       await api.deleteInvoice(id);
     }
     const target = items.value.find((i) => i.id === id);

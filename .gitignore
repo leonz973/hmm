@@ -24,3 +24,6 @@ Thumbs.db
 
 # 本地邮件预览
 .mail-out/
+
+# 上传附件
+storage/

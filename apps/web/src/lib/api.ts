@@ -54,6 +54,24 @@ export interface BillPayload {
   note?: string;
 }
 
+/** 服务端返回的发票（含附件 key） */
+export interface InvoiceRecord {
+  id: string;
+  seller: string;
+  title: string;
+  amountFen: number;
+  date: string;
+  kind: string;
+  number?: string | null;
+  assetIds: string[];
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
+  blobKey?: string | null;
+  note?: string | null;
+  createdAt: string;
+}
+
 export interface InvoicePayload {
   seller: string;
   title?: string;
@@ -159,6 +177,22 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
+/** 不带 JSON Content-Type 的原始请求（上传 FormData、下载二进制用） */
+async function requestRaw(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
+  const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
+  const access = getAccess();
+  if (access) headers.Authorization = `Bearer ${access}`;
+  const hid = getHouseholdId();
+  if (hid) headers['x-household-id'] = hid;
+
+  const res = await fetch(BASE + path, { ...init, headers });
+  if (res.status === 401 && retry && getRefresh()) {
+    const ok = await tryRefresh();
+    if (ok) return requestRaw(path, init, false);
+  }
+  return res;
+}
+
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
   if (init.body) headers['Content-Type'] = 'application/json';
@@ -247,6 +281,29 @@ export const api = {
       '/reminders/run',
       { method: 'POST', body: JSON.stringify({ dryRun }) },
     );
+  },
+
+  async uploadAttachment(file: File, entity: string, entityId: string) {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('entity', entity);
+    form.append('entityId', entityId);
+    const res = await requestRaw('/attachments', { method: 'POST', body: form });
+    if (!res.ok) throw new ApiError(res.status, await readError(res));
+    return (await res.json()) as {
+      attachment: { id: string; name: string; type: string; size: number };
+      invoice: InvoiceRecord | null;
+    };
+  },
+
+  async downloadAttachment(id: string): Promise<Blob> {
+    const res = await requestRaw(`/attachments/${id}`);
+    if (!res.ok) throw new ApiError(res.status, await readError(res));
+    return res.blob();
+  },
+
+  deleteAttachment(id: string) {
+    return request<{ ok: boolean }>(`/attachments/${id}`, { method: 'DELETE' });
   },
 
   createInvite() {
