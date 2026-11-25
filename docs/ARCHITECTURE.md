@@ -1,6 +1,6 @@
 # HMM 系统架构设计 v1.0
 
-> 依据 PRD v1.0 + DESIGN v1.0。技术栈（已确认）：Vue 3 + Vite PWA / NestJS + Prisma + PostgreSQL + MinIO / Docker Compose 自建。
+> 依据 PRD v1.0 + DESIGN v1.0。技术栈（已确认）：Vue 3 + Vite PWA / NestJS + Prisma + **SQLite**（原定 PostgreSQL，实现期因本地零依赖改为 SQLite，见 §2 注）/ 附件暂用本地磁盘（预留 MinIO 接口）/ Docker Compose 自建。
 
 ## 1. 系统组成
 
@@ -10,8 +10,8 @@
                     │   ├── /            → web 静态文件 (PWA)    │
                     │   └── /api, /ws    → api (NestJS)         │
                     │                                               │
-                    │  api ──── PostgreSQL（业务数据，权威源）        │
-                    │   ├──── MinIO（发票/图片对象存储，私有桶）       │
+                    │  api ──── SQLite（业务数据，权威源，单文件）     │
+                    │   ├──── 本地磁盘（发票/图片附件，STORAGE_DIR）   │
                     │   └──── Redis（可选：队列/限流/会话黑名单）      │
                     └─────────────────────────────────────────┘
 ```
@@ -20,14 +20,14 @@
 | --- | --- | --- |
 | Web 前端 | Vue 3 + Vite + TS + Naive UI + Pinia + vue-router | `vite-plugin-pwa`：可安装、离线只读缓存、Web Push |
 | API 服务 | NestJS（模块化）+ Prisma ORM | REST `/api/v1`，JWT 认证，SSE 变更推送 |
-| 数据库 | PostgreSQL 16 | 唯一权威数据源；Prisma Migrate 管理迁移 |
-| 对象存储 | MinIO | 私有桶 `hmm-attachments`，API 签发预签名 URL 读写 |
+| 数据库 | SQLite（Prisma provider sqlite） | 唯一权威数据源；本地 `file:./dev.db`，生产挂卷 `/data/hmm.db`；用 `prisma db push` 对齐表结构 |
+| 附件存储 | 本地磁盘（预留 MinIO） | `STORAGE_DIR/attachments`，`Attachment` 表存元数据，接口按家庭隔离；换 MinIO 只改 AttachmentsService 的 put/get/remove |
 | 反向代理 | Caddy 2 | 自动申请/续期 HTTPS 证书（只需域名指向服务器） |
 | 邮件 | SMTP（Nodemailer） | 注册验证、找回密码、（V1）提醒摘要 |
 | 定时任务 | @nestjs/schedule | 每日提醒计算、邀请码过期清理、备份触发 |
 | 可选缓存 | Redis | MVP 可省；V1 后按需（推送队列、限流） |
 
-## 2. Monorepo 结构（pnpm workspace）
+## 2. Monorepo 结构（npm workspaces；pnpm 在本机 store 锁在 C 盘不可用）
 
 ```
 HMM/
@@ -46,7 +46,7 @@ HMM/
 │   ├── .env.example
 │   └── backup.sh             # pg_dump + mc mirror 定时备份
 ├── docs/                     # PRD / DESIGN / ARCHITECTURE
-└── pnpm-workspace.yaml
+├── package.json（workspaces: apps/*, packages/*）
 ```
 
 ## 3. API 设计约定
@@ -133,7 +133,7 @@ backup.sh: pg_dump -Fc → deploy/backups/2026-11-23.dump (保留30份)
 - MinIO 私有桶 + 预签名短时效 URL；上传校验 MIME + 魔数 + 大小；图片服务端二次压缩/转 webp 可选（P1）。
 - Prisma 全参数化查询；家庭隔离在 Service 层统一封装（`HouseholdScopedService`），禁止裸 `findMany` 漏 householdId。
 - 审计日志记录：删除资产/发票、成员变更、导出、家庭解散。
-- 依赖安全：pnpm audit 进 CI；镜像用官方 slim + 固定版本号。
+- 依赖安全：`npm audit` 进 CI；镜像用官方 slim + 固定版本号。
 
 ## 7. 环境与部署
 

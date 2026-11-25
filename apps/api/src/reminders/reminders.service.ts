@@ -20,13 +20,13 @@ export interface ReminderItem {
 const OVERDUE_WINDOW_DAYS = 30;
 const DEFAULT_INFLATION = 0.03;
 
-function daysBetween(from: Date, to: string): number {
+export function daysBetween(from: Date, to: string): number {
   const target = new Date(`${to}T00:00:00`);
   return Math.round((target.getTime() - from.getTime()) / 86_400_000);
 }
 
 /** 本地日期（不要用 toISOString：东八区会退一天） */
-function localDateStr(d: Date): string {
+export function localDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -39,7 +39,7 @@ function today(): Date {
   return d;
 }
 
-function severityOf(daysLeft: number): 'info' | 'warn' | 'urgent' {
+export function severityOf(daysLeft: number): 'info' | 'warn' | 'urgent' {
   if (daysLeft <= 14) return 'urgent';
   if (daysLeft <= 45) return 'warn';
   return 'info';
