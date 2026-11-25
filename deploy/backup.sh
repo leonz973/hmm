@@ -1,26 +1,25 @@
 #!/bin/sh
-# HMM 每日备份：Postgres 逻辑备份 + MinIO 附件镜像
+# HMM 每日备份：SQLite 数据库 + 附件目录（都在 hmm_data 这个卷里）
 # 安装（服务器）：crontab -e → 0 3 * * * /path/to/deploy/backup.sh >> /var/log/hmm-backup.log 2>&1
 set -eu
 
 cd "$(dirname "$0")"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 KEEP="${KEEP:-30}"
+VOLUME="${VOLUME:-hmm_data}"
 STAMP=$(date +%F_%H%M)
 
-mkdir -p "$BACKUP_DIR/files"
+mkdir -p "$BACKUP_DIR"
 
-echo "[$(date -Iseconds)] 备份数据库…"
-docker compose exec -T postgres pg_dump -U "${POSTGRES_USER:-hmm}" -d "${POSTGRES_DB:-hmm}" -Fc \
-  > "$BACKUP_DIR/db_${STAMP}.dump"
+echo "[$(date -Iseconds)] 打包数据卷 ${VOLUME}…"
+# 卷里是 hmm.db（SQLite）+ storage/（附件）；用 --rm 一次性容器，宿主机不用装 sqlite
+docker run --rm \
+  -v "${VOLUME}:/data:ro" \
+  -v "$(pwd)/${BACKUP_DIR}:/backup" \
+  alpine:3.20 \
+  sh -c "cd /data && tar czf /backup/hmm_${STAMP}.tar.gz ."
 
-echo "[$(date -Iseconds)] 备份附件…"
-docker compose run --rm --entrypoint sh minio -c \
-  "mc alias set local http://minio:9000 \$MINIO_ROOT_USER \$MINIO_ROOT_PASSWORD >/dev/null && mc mirror --overwrite local/${MINIO_BUCKET:-hmm-attachments} /backup/files" \
-  -v "$(pwd)/${BACKUP_DIR#./}/files:/backup/files" 2>/dev/null || echo "  (附件镜像跳过：需要 mc 镜像或网络)"
+echo "[$(date -Iseconds)] 清理超过 ${KEEP} 份的旧备份…"
+ls -1t "$BACKUP_DIR"/hmm_*.tar.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
 
-echo "[$(date -Iseconds)] 清理 ${KEEP} 份以上的旧备份…"
-ls -1t "$BACKUP_DIR"/db_*.dump 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
-
-echo "[$(date -Iseconds)] 完成：$BACKUP_DIR/db_${STAMP}.dump"
-echo "恢复示例：docker compose exec -T postgres pg_restore -U hmm -d hmm --clean --if-exists < backups/db_xxx.dump"
+echo "[$(date -Iseconds)] 完成：$BACKUP_DIR/hmm_${STAMP}.tar.gz"

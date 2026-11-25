@@ -1,67 +1,71 @@
 # HMM · 家庭资产管家
 
-把家里的家具、电器、耗材记清楚，质保到期与更换时间提前提醒，换新要花多少钱提前算好；固定支出、账单水单、发票一站式存档。全家共用一个账号体系，多设备实时同步。
+记录家具、电器、耗材的**质保期**与**预计更换时间**，在到期前算出「这次大概要花多少钱」，
+再叠上固定支出与账单，让家里的大额开销能提前几个月开始攒钱。
 
-- **形态**：Web / PWA（手机可"添加到主屏幕"，像 App 一样用）
-- **技术栈**：Vue 3 + Vite + Naive UI ／ NestJS + Prisma + PostgreSQL + MinIO ／ Docker Compose 自建
-- **文档**：[PRD](PRD.md) · [设计规范](docs/DESIGN.md) · [架构设计](docs/ARCHITECTURE.md)
+- **技术栈**：Vue 3 + Vite + TypeScript + Pinia（PWA）／ NestJS + Prisma + SQLite ／ Caddy + Docker Compose
+- **数据模式**：未登录 = 本地模式（只存浏览器）；登录 = 云同步（多设备、家人共享同一个家）
 
-## 目录结构
+## 现在能做什么
+
+| 模块 | 能力 |
+| --- | --- |
+| 资产台账 | 名称/品类/房间/购买日期/价格/质保月/预计寿命/使用强度，自动算质保到期、换新日期、寿命进度、残值、换新预估金额 |
+| 首页 | 本月固定支出、未来 12 个月预计更换、需要你决定的事、未来 12 个月现金流（换新 + 固定支出，给出「每月建议预留」） |
+| 账目 | 固定支出（月/季/半年/年）、水电燃气账单（已缴/未缴/逾期）、发票（可关联资产、传 PDF/图片） |
+| 到期日历 | 按月俯瞰固定支出扣款日 + 账单到期 + 资产质保/换新提醒 |
+| 提醒 | 每天 06:00 扫一遍到期项，合并成一封邮件（未配 SMTP 时写 HTML 预览文件）；提前天数可调（默认质保 60 天、换新 90 天） |
+| 家庭 | 8 位邀请码 72 小时有效，成员共享同一份数据；户主可改家庭名与提醒设置 |
+| 备份 | 导出 JSON（全量）/ 资产 CSV（Excel 直接打开）/ 导入合并，一键清空 |
+
+## 目录
 
 ```
-apps/web        Vue 3 前端（PWA）
-apps/api        NestJS 后端 + Prisma
-packages/shared 前后端共享类型、金额工具、品类寿命种子表
-deploy          Docker Compose / Caddy / 备份脚本
-docs            设计、架构文档
+apps/web        Vue 3 前端（6 个页面 + Pinia store + IndexedDB 附件缓存）
+apps/api        NestJS 后端（auth / households / assets / fixed-expenses / bills / invoices / reminders / attachments）
+packages/shared 前后端共用：金额换算、质保到期、换新日期、品类默认寿命
+deploy          Dockerfile、Caddyfile、docker-compose.yml、备份脚本（见 deploy/README.md）
+docs            DESIGN.md（设计令牌）、ARCHITECTURE.md（架构与接口）
+PRD.md          产品需求文档
 ```
 
 ## 本地开发
 
 ```bash
-# 1. 安装依赖
-pnpm install
+# 1. 装依赖（本机 pnpm 不可用，用 npm workspaces）
+npm install --ignore-scripts
 
-# 2. 启动依赖服务（Postgres + MinIO，需要 Docker）
-docker compose -f deploy/docker-compose.dev.yml up -d
+# 2. 准备后端环境变量
+cp apps/api/.env.example apps/api/.env      # 至少设 JWT_SECRET；数据库默认 file:./dev.db
 
-# 3. 配置后端环境变量
-cp apps/api/.env.example apps/api/.env
-#    按需修改 DATABASE_URL / SMTP 等
+# 3. 建库 + 生成 Prisma Client（在 apps/api 目录下执行，DATABASE_URL 在那里）
+cd apps/api && npx prisma db push && cd ../..
 
-# 4. 初始化数据库
-pnpm --filter @hmm/api prisma:generate
-pnpm --filter @hmm/api prisma:migrate
-
-# 5. 同时启动前后端
-pnpm dev
-# 前端 http://localhost:5173  后端 http://localhost:3000/api/v1/health
+# 4. 起服务（前端 5173，后端 3000，vite 已配 /api 代理）
+npm run dev
 ```
 
-当前进度处于 **M1 骨架**：目录结构、共享类型、设计令牌、页面外壳与演示数据已完成；账号与家庭、资产台账等业务模块按里程碑推进（见 [架构文档 §9](docs/ARCHITECTURE.md)）。
-
-## 生产部署（自有服务器）
+前端：<http://127.0.0.1:5173> ／ 后端健康检查：<http://127.0.0.1:3000/api/v1/health>
 
 ```bash
-# 在服务器上
-git clone <repo> /srv/hmm && cd /srv/hmm
-cp deploy/.env.example deploy/.env   # 填写数据库密码、JWT_SECRET、SMTP
-pnpm install && pnpm build           # 构建前端
-cp -r apps/web/dist/* deploy/data/web/
-docker compose -f deploy/docker-compose.yml up -d --build
+npm run build        # shared → web → api 全量构建
+npm run test         # 前端单测 + 页面挂载冒烟（vitest）
+npm run typecheck
 ```
 
-- **有域名**：`deploy/.env` 里 `DOMAIN=hmm.example.com`，Caddy 自动申请 HTTPS。
-- **暂无域名**：`DOMAIN=:80`，用 `http://服务器IP` 访问；浏览器推送与 PWA 安装需要 HTTPS，域名就绪后切换即可（其余功能不受影响）。
-- **备份**：`deploy/backup.sh` 放入 crontab 每日执行，保留 30 份。
+## 部署
+
+见 [`deploy/README.md`](deploy/README.md)：一台装了 Docker 的服务器，
+`docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build`，
+无域名也能用 `http://服务器IP` 访问；有域名后 Caddy 自动签 HTTPS。
 
 ## 里程碑
 
 | 阶段 | 内容 | 状态 |
 | --- | --- | --- |
-| M1 | monorepo 骨架 + 设计系统 + 页面外壳 | ✅ 进行中 |
-| M2 | 账号、邮箱验证、家庭共享、邀请 | 待开始 |
-| M3 | 资产台账、质保期、寿命预测、凭证上传 | 待开始 |
-| M4 | 固定支出、提醒引擎、站内提醒 + 推送 | 待开始 |
-| M5 | 发票/水单存档、首页聚合、导出 | 待开始 |
-| M6 | PWA、深色模式、备份演练、上线 | 待开始 |
+| M1 | 骨架、设计令牌、页面壳 | ✅ |
+| M2 | 账号、家庭、云同步、资产台账 | ✅ |
+| M3 | 到期计算与提醒引擎（邮件） | ✅ 代码完成，等 SMTP 授权码验证真实投递 |
+| M4 | 固定支出、账单、发票、附件上云 | ✅ |
+| M5 | 现金流预测、日历、导出备份 | ✅ |
+| M6 | 生产部署（Docker Compose）、备份、监控 | 🚧 部署物已就绪，待服务器执行 |
