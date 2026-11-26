@@ -309,7 +309,9 @@ function money(fen?: number) {
   display: flex;
   gap: var(--space-lg);
   align-items: center;
-  background: linear-gradient(135deg, var(--color-primary-weak), var(--color-card) 60%);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(16, 185, 129, 0.16), transparent 60%),
+    var(--glass-bg);
 }
 
 .divider {
@@ -319,14 +321,18 @@ function money(fen?: number) {
 }
 
 .big {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
-  line-height: 1.25;
-  margin: 2px 0;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 4px 0 2px;
 }
 
 .big.accent {
-  color: var(--color-accent);
+  background: var(--grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .alert {
@@ -570,5 +576,36 @@ ul {
   font-size: 13px;
   cursor: pointer;
   padding: 0;
+}
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+/* 只有一张大额卡时铺满整行，内容横向摆成一条横幅 */
+.grid:has(> :only-child) {
+  grid-template-columns: 1fr !important;
+}
+
+.grid:has(> :only-child) .big-card {
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-xl);
+  align-items: center;
+}
+
+.grid:has(> :only-child) .big-card > .tiny:nth-child(1) {
+  grid-column: 1 / -1;
+}
+
+.grid:has(> :only-child) .big-card > .ghost-btn {
+  grid-column: 2;
+  grid-row: 2 / span 3;
+  margin: 0;
+  justify-self: end;
+}
+
+.flow-bar {
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-text-3) 12%, transparent);
+  box-shadow: inset 0 1px 2px rgba(6, 78, 59, 0.06);
 }
 </style>

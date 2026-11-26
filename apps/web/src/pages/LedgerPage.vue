@@ -494,16 +494,18 @@ h2 {
 .tabs {
   display: flex;
   gap: 4px;
-  padding: 4px;
-  background: var(--color-bg);
-  border-radius: var(--radius-control);
+  padding: 6px;
+  background: var(--glass-bg-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .tabs button {
   flex: 1;
   min-height: 38px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-2);
   font-size: 14px;
@@ -511,10 +513,10 @@ h2 {
 }
 
 .tabs button.on {
-  background: var(--color-card);
+  background: var(--glass-bg-strong);
   color: var(--color-primary);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  box-shadow: 0 8px 18px -12px rgba(6, 78, 59, 0.55);
 }
 
 .hero {

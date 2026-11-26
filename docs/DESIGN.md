@@ -127,3 +127,20 @@ font-family: Inter, "MiSans", "PingFang SC", "HarmonyOS Sans SC",
 - [ ] 空态/加载/错误/离线四态齐备
 - [ ] 表单行内校验、错误聚焦、破坏性操作二次确认
 - [ ] 长列表分页/虚拟滚动、图片懒加载、上传压缩
+
+## 2.1 视觉 v2（2026-11-26 大圆角 / 毛玻璃 / 光影）
+
+用户反馈首版「太 low」，全站换成玻璃拟态，令牌已落在 `apps/web/src/styles/tokens.css`：
+
+| 维度 | 值 |
+| --- | --- |
+| 卡片圆角 | `--radius-card: 28px`（手机 24px） |
+| 控件圆角 | `--radius-control: 16px`，弹层 `--radius-sheet: 32px` |
+| 玻璃 | `--glass-bg: rgba(255,255,255,.82)` + `backdrop-filter: blur(22px) saturate(165%)`，边框 `rgba(255,255,255,.9)` |
+| 光影 | `--shadow-card: 0 0 0 1px rgba(6,78,59,.05), 0 2px 4px rgba(6,52,38,.04), 0 24px 48px -28px rgba(6,78,59,.45), inset 0 1px 0 rgba(255,255,255,.95)` |
+| 主色渐变 | `--grad-primary: linear-gradient(135deg,#34d399,#059669 52%,#047857)`，按钮带 `--shadow-glow` |
+| 背景 | 四角四团柔光（绿/琥珀/天蓝/青），`body::before` 固定铺底，给玻璃提供透光对象 |
+| 卡片高光 | `.card::after` 顶部 `--grad-sheen`，模拟玻璃边缘反光 |
+| 弹层 | 毛玻璃 `.sheet`，移动端从底部升起（`--ease-spring`） |
+
+约定：页面里不再写死卡片底色/边框，统一用 `.card`；主按钮只写尺寸，皮肤由 `.primary` 全局类提供；输入框聚焦为「绿色光环」。

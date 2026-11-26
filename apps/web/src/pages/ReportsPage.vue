@@ -86,7 +86,7 @@ const future = computed(() => {
 
 const futureMax = computed(() => Math.max(1, ...future.value.map((f) => f.total)));
 
-const money = (fen: number) => formatFen(fen);
+const money = (fen: number) => `¥${formatFen(fen)}`;
 </script>
 
 <template>

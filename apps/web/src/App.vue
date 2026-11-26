@@ -94,10 +94,15 @@ initInstallPrompt();
   justify-content: space-between;
   gap: 8px;
   font-size: 12px;
-  color: var(--color-accent);
-  background: #fffbeb;
-  border-bottom: 1px solid #fde68a;
-  padding: 6px var(--space-md);
+  color: #92500e;
+  background: rgba(251, 191, 36, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-pill);
+  width: fit-content;
+  margin: var(--space-sm) var(--space-md) 0;
+  padding: 7px 14px;
 }
 
 .local-hint button {
@@ -120,9 +125,10 @@ initInstallPrompt();
   gap: var(--space-md);
   padding: 12px var(--space-md);
   padding-top: max(12px, env(safe-area-inset-top));
-  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--glass-bg-soft);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .brand {
@@ -137,9 +143,10 @@ initInstallPrompt();
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
-  background: var(--color-primary);
-  color: #fff;
+  border-radius: 12px;
+  background-image: var(--grad-primary);
+  color: #042b1f;
+  box-shadow: var(--shadow-glow);
   font-weight: 700;
   font-size: 18px;
   flex: none;
@@ -147,8 +154,13 @@ initInstallPrompt();
 
 .brand-name {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   white-space: nowrap;
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .family-chip {
@@ -158,9 +170,11 @@ initInstallPrompt();
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: var(--radius-pill);
-  background: var(--color-primary-weak);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-inset);
   color: var(--color-primary);
   font-size: 13px;
   font-weight: 500;
@@ -195,9 +209,11 @@ initInstallPrompt();
   z-index: 30;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  background: color-mix(in srgb, var(--color-card) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -12px 30px -24px rgba(6, 78, 59, 0.5);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -214,9 +230,27 @@ initInstallPrompt();
   transition: color 0.15s var(--ease-out);
 }
 
+.tab {
+  position: relative;
+}
+
 .tab.active {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.tab.active::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 54px;
+  height: 34px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  z-index: -1;
 }
 
 .tab:active {
@@ -234,7 +268,11 @@ initInstallPrompt();
     grid-template-columns: 1fr;
     grid-auto-rows: 72px;
     border-top: none;
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid var(--glass-border);
+    background: var(--glass-bg-soft);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    box-shadow: 1px 0 0 rgba(6, 78, 59, 0.04);
     padding-top: 88px;
   }
   .content {
@@ -244,6 +282,10 @@ initInstallPrompt();
   }
   .topbar {
     padding-left: calc(88px + var(--space-lg));
+  }
+  .local-hint {
+    margin-left: calc(88px + var(--space-lg));
+    margin-right: var(--space-lg);
   }
 }
 </style>
