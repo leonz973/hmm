@@ -1,5 +1,9 @@
 # HMM · 家庭资产管家
 
+[![CI](https://github.com/leonz973/hmm/actions/workflows/ci.yml/badge.svg)](https://github.com/leonz973/hmm/actions/workflows/ci.yml)
+[![Docker](https://github.com/leonz973/hmm/actions/workflows/docker.yml/badge.svg)](https://github.com/leonz973/hmm/actions/workflows/docker.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 记录家具、电器、耗材的**质保期**与**预计更换时间**，在到期前算出「这次大概要花多少钱」，
 再叠上固定支出与账单，让家里的大额开销能提前几个月开始攒钱。
 
@@ -66,11 +70,32 @@ npm run test         # 前端单测 + 页面挂载冒烟（vitest）
 npm run typecheck
 ```
 
+## 一条命令跑起来（Docker）
+
+镜像已发布在 Docker Hub：`leonz973/hmm`（amd64 / arm64 双架构）。
+
+```bash
+docker run -d --name hmm \
+  -p 3000:3000 \
+  -v hmm_data:/data \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  -e APP_URL="http://localhost:3000" \
+  leonz973/hmm:latest
+```
+
+打开 <http://localhost:3000> 注册账号即可用。数据（SQLite + 附件）都在 `hmm_data` 卷里，
+升级只需 `docker pull leonz973/hmm:latest` 后重建容器，卷不动；备份就是把这个卷打包走。
+
+可选环境变量：`SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`（配了才会真发提醒邮件，否则只写预览文件）、
+`TZ`（默认 `Asia/Shanghai`）、`WARRANTY_LEAD_DAYS` 之类在页面「设置 → 提醒设置」里调即可。
+
 ## 部署
 
 见 [`deploy/README.md`](deploy/README.md)：一台装了 Docker 的服务器，
 `docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build`，
 无域名也能用 `http://服务器IP` 访问；有域名后 Caddy 自动签 HTTPS。
+
+也可以直接用上面的单镜像方式（自带前端静态资源与 API，无需 Caddy）。
 
 ## 里程碑
 

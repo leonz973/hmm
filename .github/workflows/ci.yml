@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: 构建 + 测试
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: file:./ci.db
+      JWT_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生成 Prisma Client
+        run: npx prisma generate --schema apps/api/prisma/schema.prisma
+
+      - name: 构建（shared → web → api）
+        run: npm run build
+
+      - name: 单元测试
+        run: npm test
