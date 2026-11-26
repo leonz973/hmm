@@ -119,6 +119,8 @@ onMounted(() => {
     form.expectedLifeMonths = String(asset.expectedLifeMonths);
     form.usageLevel = asset.usageLevel;
     form.notes = asset.notes ?? '';
+    // 从详情页点「记录换新」进来的，直接把弹层打开
+    if (route.query.replace === '1' && asset.status !== 'replaced') openReplace();
   } else {
     applyCategoryDefaults();
   }
