@@ -222,7 +222,8 @@ initInstallPrompt();
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-top: 1px solid var(--glass-border);
   box-shadow: 0 -12px 30px -24px rgba(6, 78, 59, 0.5);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* 底部留出安全区 + 一点余量：Android 手势条 / iOS home indicator 都会压住文字 */
+  padding: 7px 10px max(env(safe-area-inset-bottom), 14px);
 }
 
 .tab {
@@ -231,13 +232,14 @@ initInstallPrompt();
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: 56px;
+  min-height: 54px;
   width: 100%;
-  padding: 0;
+  padding: 4px 0 6px;
   border: none;
   background: transparent;
   font-family: inherit;
   font-size: 11px;
+  line-height: 1.1;
   color: var(--color-text-3);
   text-decoration: none;
   cursor: pointer;

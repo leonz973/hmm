@@ -622,6 +622,15 @@ function onClear() {
   justify-content: space-between;
 }
 
+.cloud-cta button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.cloud-cta .cta-text {
+  min-width: 0;
+}
+
 .cta-text p {
   margin: 2px 0 0;
 }
