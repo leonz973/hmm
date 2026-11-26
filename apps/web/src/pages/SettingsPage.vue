@@ -13,6 +13,7 @@ import {
   PhFileCsv as FileCsv,
   PhCloudArrowUp as CloudIcon,
   PhCopy as Copy,
+  PhChartPieSlice as ChartPie,
 } from '@phosphor-icons/vue';
 import { api } from '@/lib/api';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
@@ -273,6 +274,11 @@ function onClear() {
         <Bell :size="18" />
         <span>提醒设置</span>
         <span class="tiny">质保提前 {{ prefs.warrantyLeadDays }} 天 · 换新提前 {{ prefs.replaceLeadDays }} 天</span>
+      </button>
+      <button class="row" type="button" @click="router.push('/reports')">
+        <ChartPie :size="18" />
+        <span>统计报表</span>
+        <span class="tiny">支出构成 · 折旧 · 未来三年</span>
       </button>
     </section>
 

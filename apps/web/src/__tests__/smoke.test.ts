@@ -11,6 +11,7 @@ import SettingsPage from '@/pages/SettingsPage.vue';
 import AssetFormPage from '@/pages/AssetFormPage.vue';
 import LoginPage from '@/pages/LoginPage.vue';
 import AssetDetailPage from '@/pages/AssetDetailPage.vue';
+import ReportsPage from '@/pages/ReportsPage.vue';
 
 /** 页面能不能真正挂载渲染 —— 构建通过不等于运行时不出错 */
 async function mountPage(component: any) {
@@ -118,5 +119,34 @@ describe('页面挂载冒烟', () => {
     expect(html).toContain('云同步');
     expect(html).toContain('注册一个');
     expect(html).toContain('稍后再说');
+  });
+
+  it('统计报表页能渲染四块内容', async () => {
+    localStorage.setItem(
+      'hmm.assets.v1',
+      JSON.stringify([
+        {
+          id: 'asset-r1',
+          name: '测试冰箱',
+          categoryKey: 'appliance_large',
+          categoryName: '大家电',
+          location: '厨房',
+          purchaseDate: '2024-01-10',
+          priceFen: 300000,
+          warrantyMonths: 36,
+          expectedLifeMonths: 120,
+          usageLevel: 'mid',
+          createdAt: '2024-01-10T00:00:00.000Z',
+          updatedAt: '2024-01-10T00:00:00.000Z',
+        },
+      ]),
+    );
+    const w = await mountPage(ReportsPage);
+    const html = w.html();
+    expect(html).toContain('统计报表');
+    expect(html).toContain('今年看得见的支出');
+    expect(html).toContain('折旧与残值');
+    expect(html).toContain('未来三年的资金压力');
+    expect(html).toContain('大家电');
   });
 });

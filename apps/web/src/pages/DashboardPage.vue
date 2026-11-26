@@ -213,7 +213,7 @@ function money(fen?: number) {
       <section class="card">
         <div class="section-head">
           <h2>未来 12 个月的钱</h2>
-          <span class="tiny">更换 + 固定支出</span>
+          <button class="link" type="button" @click="router.push('/reports')">看报表 →</button>
         </div>
         <div class="reserve">
           <div>
@@ -561,5 +561,14 @@ ul {
   .grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+.link {
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
 }
 </style>
