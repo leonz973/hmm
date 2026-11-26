@@ -26,6 +26,7 @@ export default defineConfig({
           { src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
+      devOptions: { enabled: true, type: 'module', navigateFallback: 'index.html' },
       workbox: {
         navigateFallback: '/index.html',
         // 不要把接口请求吞进 SW 缓存
