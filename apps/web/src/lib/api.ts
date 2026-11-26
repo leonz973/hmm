@@ -100,6 +100,31 @@ export interface AssetPayload {
   note?: string;
 }
 
+export interface MaintenancePayload {
+  assetId: string;
+  title: string;
+  intervalMonths: number;
+  lastDoneDate?: string;
+  nextDueDate?: string;
+  note?: string;
+}
+
+/** 服务端返回的保养计划 */
+export interface MaintenanceRecord {
+  id: string;
+  assetId: string;
+  assetName: string;
+  title: string;
+  intervalMonths: number;
+  lastDoneDate: string;
+  nextDueDate: string;
+  daysLeft: number;
+  note: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -380,5 +405,21 @@ export const api = {
   },
   deleteInvoice(id: string) {
     return request<{ ok: boolean }>(`/invoices/${id}`, { method: 'DELETE' });
+  },
+
+  listMaintenance<T>(assetId?: string) {
+    return request<T[]>(`/maintenance${assetId ? `?assetId=${encodeURIComponent(assetId)}` : ''}`);
+  },
+  createMaintenance<T>(payload: MaintenancePayload) {
+    return request<T>('/maintenance', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateMaintenance<T>(id: string, payload: Partial<MaintenancePayload> & { enabled?: boolean }) {
+    return request<T>(`/maintenance/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  doneMaintenance<T>(id: string, doneDate?: string) {
+    return request<T>(`/maintenance/${id}/done`, { method: 'POST', body: JSON.stringify({ doneDate }) });
+  },
+  deleteMaintenance(id: string) {
+    return request<{ ok: boolean }>(`/maintenance/${id}`, { method: 'DELETE' });
   },
 };

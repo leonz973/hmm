@@ -9,26 +9,31 @@ import {
   PhCalendarBlank as CalendarBlank,
   PhWallet as Wallet,
   PhPlus as Plus,
+  PhWrench as Wrench,
 } from '@phosphor-icons/vue';
 import { formatFen } from '@hmm/shared';
 import { useAssetsStore } from '@/stores/assets';
 import { useFixedExpensesStore } from '@/stores/fixedExpenses';
 import { usePrefsStore } from '@/stores/prefs';
+import { useMaintenanceStore } from '@/stores/maintenance';
 
 const store = useAssetsStore();
 const fixedStore = useFixedExpensesStore();
 const prefs = usePrefsStore();
+const plans = useMaintenanceStore();
 const router = useRouter();
 
 onMounted(() => {
   store.load();
   fixedStore.load();
+  plans.load();
   prefs.load();
 });
 
 interface Item {
   id: string;
-  kind: 'warranty' | 'replace';
+  kind: 'warranty' | 'replace' | 'maintenance';
+  assetId?: string;
   title: string;
   subtitle: string;
   date: string;
@@ -68,8 +73,32 @@ const items = computed<Item[]>(() => {
       });
     }
   }
+  for (const p of plans.views) {
+    if (!p.enabled) continue;
+    if (p.daysLeft > Math.max(prefs.replaceLeadDays, 30)) continue;
+    out.push({
+      id: `${p.id}-m`,
+      kind: 'maintenance',
+      assetId: p.assetId,
+      title: `${p.assetName} ${p.title}`,
+      subtitle: p.daysLeft < 0 ? `已超期 ${-p.daysLeft} 天` : p.daysLeft === 0 ? '就是今天' : `还有 ${p.daysLeft} 天`,
+      date: p.nextDueDate,
+      days: p.daysLeft,
+      tone: p.daysLeft <= 0 ? 'urgent' : p.daysLeft <= 30 ? 'warn' : 'ok',
+    });
+  }
   return out.sort((x, y) => x.days - y.days);
 });
+
+function iconFor(kind: Item['kind']) {
+  if (kind === 'warranty') return ShieldCheck;
+  if (kind === 'maintenance') return Wrench;
+  return ArrowsClockwise;
+}
+
+function openItem(item: Item) {
+  void router.push(item.assetId ? `/assets/${item.assetId}` : '/assets');
+}
 
 const urgent = computed(() => items.value.filter((i) => i.tone !== 'ok').slice(0, 5));
 const upcoming = computed(() => items.value.slice(0, 6));
@@ -156,8 +185,8 @@ function money(fen?: number) {
           <span class="badge">{{ urgent.length }}</span>
         </div>
         <ul>
-          <li v-for="i in urgent" :key="i.id" @click="router.push('/assets')">
-            <component :is="i.kind === 'warranty' ? ShieldCheck : ArrowsClockwise" :size="18" />
+          <li v-for="i in urgent" :key="i.id" @click="openItem(i)">
+            <component :is="iconFor(i.kind)" :size="18" />
             <div class="li-main">
               <div class="li-title">{{ i.title }}</div>
               <div class="tiny">{{ fmtDate(i.date) }} · {{ i.subtitle }}</div>
@@ -223,7 +252,7 @@ function money(fen?: number) {
           <span class="tiny">按提醒设置（{{ prefs.replaceLeadDays }} 天）</span>
         </div>
         <ul class="timeline">
-          <li v-for="i in upcoming" :key="i.id">
+          <li v-for="i in upcoming" :key="i.id" @click="openItem(i)">
             <div class="date-chip">
               <CalendarBlank :size="14" />
               {{ fmtDate(i.date) }}

@@ -52,6 +52,7 @@ model Household {
   reminderRuns   ReminderRunLog[]
   auditLogs      AuditLog[]
   attachments    Attachment[]
+  maintenancePlans MaintenancePlan[]
 }
 
 model Membership {
@@ -129,6 +130,27 @@ model Asset {
   location      Location?      @relation(fields: [locationId], references: [id])
   warranties    Warranty[]
   invoiceAssets InvoiceAsset[]
+  maintenancePlans MaintenancePlan[]
+}
+
+model MaintenancePlan {
+  id             String    @id @default(cuid())
+  householdId    String
+  assetId        String
+  title          String // 清洗滤网 / 换滤芯 / 检修
+  intervalMonths Int // 周期（月）
+  lastDoneDate   String? // 上次完成 YYYY-MM-DD
+  nextDueDate    String // 下次到期 YYYY-MM-DD
+  note           String?
+  enabled        Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([householdId])
+  @@index([assetId])
 }
 
 model Warranty {

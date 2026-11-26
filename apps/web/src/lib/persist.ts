@@ -44,11 +44,12 @@ export function daysUntil(dateISO: string): number {
   return Math.round((target - now) / 86400000);
 }
 
-/** 在 dateISO 基础上加 n 个月，保留日（月末溢出由 Date 顺延） */
+/** 在 dateISO 基础上加 n 个月；月末自动收回（1-31 + 1 月 → 2-28） */
 export function addMonths(dateISO: string, n: number): string {
-  const d = new Date(dateISO + 'T00:00:00');
-  d.setMonth(d.getMonth() + n);
-  return toISO(d);
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const base = new Date(y, m - 1 + n, 1);
+  const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  return toISO(new Date(base.getFullYear(), base.getMonth(), Math.min(d, lastDay)));
 }
 
 export function monthKey(dateISO: string): string {

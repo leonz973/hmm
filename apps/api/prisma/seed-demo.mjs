@@ -133,6 +133,16 @@ async function main() {
     账单: await prisma.utilityBill.count({ where: { householdId } }),
     发票: await prisma.invoice.count({ where: { householdId } }),
   };
+  // 保养计划：让「换滤芯 / 洗滤网」这类周期性事项也有样本
+  const assetIdByName = Object.fromEntries(created.map((a) => [a.name, a.id]));
+  await prisma.maintenancePlan.createMany({
+    data: [
+      { householdId, assetId: assetIdByName['净水器滤芯'], title: '换滤芯', intervalMonths: 3, lastDoneDate: '2026-08-20', nextDueDate: '2026-11-20', note: 'PP棉 + 活性炭' },
+      { householdId, assetId: assetIdByName['小米空调 KFR-35GW'], title: '清洗滤网', intervalMonths: 6, lastDoneDate: '2026-06-15', nextDueDate: '2026-12-15' },
+      { householdId, assetId: assetIdByName['西门子洗衣机'], title: '筒清洁', intervalMonths: 1, lastDoneDate: '2026-10-26', nextDueDate: '2026-11-26' },
+    ],
+  });
+
   console.log('演示数据已就绪：', counts);
   console.log('示例：小米电视质保到', addMonths('2024-12-01', 24), '；扫地机器人预计换新', addMonths('2022-12-01', 48));
 }

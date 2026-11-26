@@ -6,7 +6,7 @@ import { HouseholdsService } from '../households/households.service';
 import { MailerService } from '../mailer/mailer.service';
 
 export interface ReminderItem {
-  type: 'warranty_expire' | 'replacement';
+  type: 'warranty_expire' | 'replacement' | 'maintenance';
   refId: string;
   assetName: string;
   categoryName: string;
@@ -109,6 +109,26 @@ export class RemindersService {
           });
         }
       }
+    }
+
+    // 保养计划：清洗滤网、换滤芯这类周期性事项，用同一个「换新提前天数」当窗口
+    const plans = await this.prisma.maintenancePlan.findMany({
+      where: { householdId, enabled: true, asset: { deletedAt: null, status: 'in_use' } },
+      include: { asset: { select: { id: true, name: true, categoryName: true } } },
+    });
+    for (const p of plans) {
+      const left = daysBetween(now, p.nextDueDate);
+      if (left > replaceLead || left < -OVERDUE_WINDOW_DAYS) continue;
+      items.push({
+        type: 'maintenance',
+        refId: p.id,
+        assetName: `${p.asset.name}·${p.title}`,
+        categoryName: p.asset.categoryName ?? '',
+        dueDate: p.nextDueDate,
+        daysLeft: left,
+        severity: severityOf(left),
+        amountFen: 0,
+      });
     }
 
     return items.sort((x, y) => x.daysLeft - y.daysLeft);

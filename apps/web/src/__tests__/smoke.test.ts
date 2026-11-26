@@ -10,6 +10,7 @@ import LedgerPage from '@/pages/LedgerPage.vue';
 import SettingsPage from '@/pages/SettingsPage.vue';
 import AssetFormPage from '@/pages/AssetFormPage.vue';
 import LoginPage from '@/pages/LoginPage.vue';
+import AssetDetailPage from '@/pages/AssetDetailPage.vue';
 
 /** 页面能不能真正挂载渲染 —— 构建通过不等于运行时不出错 */
 async function mountPage(component: any) {
@@ -45,6 +46,44 @@ describe('页面挂载冒烟', () => {
     const w = await mountPage(AssetsPage);
     expect(w.html()).toContain('资产台账');
     expect(w.html()).toContain('录入');
+  });
+
+  it('资产详情页能渲染，并显示保养计划区块', async () => {
+    localStorage.setItem(
+      'hmm.assets.v1',
+      JSON.stringify([
+        {
+          id: 'asset-1',
+          name: '测试净水器',
+          categoryKey: 'appliance_small',
+          categoryName: '小家电',
+          location: '厨房',
+          purchaseDate: '2026-01-01',
+          priceFen: 189900,
+          warrantyMonths: 24,
+          expectedLifeMonths: 60,
+          usageLevel: 'mid',
+          notes: '',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ]),
+    );
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/assets/:id', component: AssetDetailPage },
+        { path: '/', component: AssetDetailPage },
+      ],
+    });
+    router.push('/assets/asset-1');
+    await router.isReady();
+    const w = mount(AssetDetailPage, { global: { plugins: [router] } });
+    await new Promise((r) => setTimeout(r, 0));
+    const html = w.html();
+    expect(html).toContain('测试净水器');
+    expect(html).toContain('保养计划');
+    expect(html).toContain('预计换新');
   });
 
   it('资产表单在新建模式可渲染', async () => {

@@ -36,7 +36,7 @@ describe('备份导出：数据源是 store', () => {
     const bills = useBillsStore();
     bills.load();
     bills.clearAll();
-    await bills.create({ type: '水费', period: '2026-11', amountFen: 8600, usage: '12吨' });
+    await bills.create({ type: '水费', period: '2026-11', amountFen: 8600, usage: 12, dueDate: '2026-11-30' });
 
     const backup = collectBackup();
     expect(backup.app).toBe('hmm');

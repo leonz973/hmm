@@ -9,6 +9,7 @@ import CalendarPage from './pages/CalendarPage.vue';
 import LedgerPage from './pages/LedgerPage.vue';
 import SettingsPage from './pages/SettingsPage.vue';
 import AssetFormPage from './pages/AssetFormPage.vue';
+import AssetDetailPage from './pages/AssetDetailPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import { useAuthStore } from './stores/auth';
 
@@ -24,6 +25,7 @@ const router = createRouter({
       component: AssetFormPage,
       meta: { title: '编辑资产' },
     },
+    { path: '/assets/:id', name: 'asset-detail', component: AssetDetailPage, meta: { title: '资产详情' } },
     { path: '/calendar', name: 'calendar', component: CalendarPage, meta: { title: '日历' } },
     { path: '/receipts', name: 'receipts', component: LedgerPage, meta: { title: '账目' } },
     { path: '/settings', name: 'settings', component: SettingsPage, meta: { title: '我的' } },

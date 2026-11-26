@@ -49,8 +49,8 @@ function statusText(days: number): { text: string; tone: 'ok' | 'warn' | 'urgent
   return { text: `还能用约 ${Math.round(days / 30)} 个月`, tone: 'ok' };
 }
 
-function toForm(id: string) {
-  void router.push(`/assets/${id}/edit`);
+function toDetail(id: string) {
+  void router.push(`/assets/${id}`);
 }
 </script>
 
@@ -91,7 +91,7 @@ function toForm(id: string) {
         class="card asset"
         :class="{ retired: a.status === 'replaced' }"
         type="button"
-        @click="toForm(a.id)"
+        @click="toDetail(a.id)"
       >
         <div class="icon-wrap">
           <Cube :size="22" />
