@@ -47,6 +47,16 @@ npm run dev
 
 前端：<http://127.0.0.1:5173> ／ 后端健康检查：<http://127.0.0.1:3000/api/v1/health>
 
+### 想先看看有数据的样子
+
+```bash
+npm run seed:demo     # 建一个演示家庭：8 件资产 / 7 项固定支出 / 8 张账单 / 3 张发票
+```
+
+账号 `demo@hmm.local`，密码 `hmm12345`（仅本地演示用）。里面特意留了「小米电视质保 5 天后到期」「扫地机器人 5 天后换新」几条，登录后首页就能看到提醒与预留金额。
+
+不登录也能用：不登录时是**本地模式**，数据只存在当前浏览器（localStorage + IndexedDB），适合先试试手感；登录后同一套界面切成云端，数据落在 `apps/api/dev.db`，附件落在 `apps/api/storage/attachments`。
+
 ```bash
 npm run build        # shared → web → api 全量构建
 npm run test         # 前端单测 + 页面挂载冒烟（vitest）

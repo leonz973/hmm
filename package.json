@@ -20,7 +20,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build:shared": "npm run build -w @hmm/shared"
+    "build:shared": "npm run build -w @hmm/shared",
+    "seed:demo": "node apps/api/prisma/seed-demo.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
