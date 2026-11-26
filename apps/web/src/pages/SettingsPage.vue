@@ -63,7 +63,7 @@ const toast = ref('');
 const fileInput = ref<HTMLInputElement | null>(null);
 
 onMounted(() => {
-  theme.value = (localStorage.getItem('hmm-theme') as 'light' | 'dark') ?? 'light';
+  theme.value = (localStorage.getItem('hmm-theme') as 'light' | 'dark') ?? 'dark';
   apply();
   prefs.load();
   void ping();

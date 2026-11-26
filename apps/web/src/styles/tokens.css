@@ -80,14 +80,14 @@
   --color-text: #e9f3ee;
   --color-text-2: #a9bcb3;
   --color-text-3: #74897f;
-  --color-bg: #080d0b;
-  --color-card: #101815;
-  --color-border: rgba(255, 255, 255, 0.1);
+  --color-bg: #050e0b;
+  --color-card: #0b1815;
+  --color-border: rgba(120, 255, 200, 0.12);
 
-  --glass-bg: rgba(22, 34, 29, 0.66);
-  --glass-bg-strong: rgba(26, 40, 34, 0.86);
-  --glass-bg-soft: rgba(30, 46, 39, 0.42);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-bg: linear-gradient(158deg, rgba(24, 46, 38, 0.84) 0%, rgba(9, 22, 18, 0.76) 100%);
+  --glass-bg-strong: rgba(27, 48, 40, 0.9);
+  --glass-bg-soft: rgba(28, 46, 38, 0.45);
+  --glass-border: rgba(122, 255, 200, 0.14);
 
   --grad-primary: linear-gradient(135deg, #6ee7b7 0%, #34d399 50%, #10b981 100%);
   --grad-text: linear-gradient(120deg, #d1fae5 0%, #6ee7b7 55%, #5eead4 100%);
@@ -104,6 +104,8 @@
   --shadow-float: 0 30px 80px -24px rgba(0, 0, 0, 0.75);
   --shadow-glow: 0 14px 34px -16px rgba(52, 211, 153, 0.5);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --glow-num: 0 0 28px rgba(52, 211, 153, 0.34);
+  --glow-accent: 0 0 28px rgba(251, 191, 36, 0.3);
 }
 
 * {
@@ -151,10 +153,10 @@ body::before {
 
 :root[data-theme='dark'] body::before {
   background:
-    radial-gradient(34% 30% at 10% 6%, rgba(16, 185, 129, 0.22), transparent 68%),
-    radial-gradient(30% 26% at 90% 2%, rgba(251, 191, 36, 0.12), transparent 70%),
-    radial-gradient(38% 34% at 82% 94%, rgba(56, 189, 248, 0.14), transparent 70%),
-    radial-gradient(32% 28% at 6% 92%, rgba(45, 212, 191, 0.14), transparent 70%);
+    radial-gradient(42% 36% at 12% 2%, rgba(16, 185, 129, 0.32), transparent 66%),
+    radial-gradient(32% 26% at 92% 0%, rgba(251, 191, 36, 0.14), transparent 70%),
+    radial-gradient(46% 40% at 86% 98%, rgba(45, 212, 191, 0.2), transparent 70%),
+    radial-gradient(36% 30% at 2% 96%, rgba(56, 189, 248, 0.12), transparent 70%);
 }
 
 h1,
@@ -396,4 +398,36 @@ textarea::placeholder {
     border-radius: 24px;
     padding: var(--space-md);
   }
+}
+
+/* —— 深色高光：卡片薄荷色边缘反光 + 数字发光 —— */
+:root[data-theme='dark'] .alert {
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.13), rgba(9, 22, 18, 0.88) 62%);
+  border-color: rgba(251, 191, 36, 0.32);
+}
+
+:root[data-theme='dark'] .alert::before {
+  opacity: 0;
+}
+
+:root[data-theme='dark'] .card::before {
+  content: '';
+  position: absolute;
+  inset: -65% 40% 50% -22%;
+  background: radial-gradient(closest-side, rgba(52, 211, 153, 0.13), transparent 72%);
+  pointer-events: none;
+}
+
+:root[data-theme='dark'] .big,
+:root[data-theme='dark'] .hero .num {
+  text-shadow: var(--glow-num);
+}
+
+:root[data-theme='dark'] .big.accent {
+  text-shadow: var(--glow-accent);
+}
+
+:root[data-theme='dark'] .tabs button.on,
+:root[data-theme='dark'] .pill.on {
+  box-shadow: 0 0 0 1px rgba(122, 255, 200, 0.22), 0 12px 26px -16px rgba(52, 211, 153, 0.6);
 }

@@ -40,6 +40,9 @@ const router = createRouter({
 });
 
 const pinia = createPinia();
+const savedTheme = localStorage.getItem('hmm-theme');
+document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+
 const app = createApp(App).use(pinia).use(router);
 
 // 先恢复登录态再挂载：否则首屏会在「本地模式」和「云同步」之间闪一下

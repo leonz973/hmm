@@ -144,3 +144,12 @@ font-family: Inter, "MiSans", "PingFang SC", "HarmonyOS Sans SC",
 | 弹层 | 毛玻璃 `.sheet`，移动端从底部升起（`--ease-spring`） |
 
 约定：页面里不再写死卡片底色/边框，统一用 `.card`；主按钮只写尺寸，皮肤由 `.primary` 全局类提供；输入框聚焦为「绿色光环」。
+
+### 2.1.1 深色高光版（默认主题）
+
+- 默认主题改为 **dark**（`localStorage['hmm-theme']` 无值时取 dark，`main.ts` 挂载前写入 `data-theme`）。
+- 背景：`#050e0b` 墨绿黑，四角四团柔光（薄荷 32% / 琥珀 14% / 青 20% / 天蓝 12%）。
+- 卡片：`linear-gradient(158deg, rgba(24,46,38,.84), rgba(9,22,18,.76))` + `rgba(122,255,200,.14)` 薄荷描边 + `.card::before` 左上薄荷反光。
+- 数字：`--glow-num: 0 0 28px rgba(52,211,153,.34)`，橙色金额用 `--glow-accent`。
+- 警示卡（`.alert`）在深色下单独走琥珀渐变，并关闭薄荷反光，避免色相互相污染。
+- 浅色仍是完整可用主题，设置页「外观」可切。
