@@ -27,3 +27,6 @@ Thumbs.db
 
 # 上传附件
 storage/
+
+# 截图/调试临时目录
+.shots/
