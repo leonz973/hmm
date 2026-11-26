@@ -115,3 +115,46 @@ export class UpdateAssetDto {
   @MaxLength(200)
   note?: string;
 }
+
+/** 以旧换新：旧资产标记 replaced，新建一件接替它 */
+export class ReplaceAssetDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(1, { message: '名称不能为空' })
+  @MaxLength(40)
+  name?: string;
+
+  @Matches(DATE_RE, { message: '购买日期格式应为 YYYY-MM-DD' })
+  purchaseDate!: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(99_999_999_00)
+  priceFen!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(600)
+  warrantyMonths?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(600)
+  expectedLifeMonths?: number;
+
+  @IsOptional()
+  @IsIn(['low', 'mid', 'high'])
+  usageLevel?: 'low' | 'mid' | 'high';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
+}

@@ -85,14 +85,22 @@ function toForm(id: string) {
     </label>
 
     <div v-if="filtered.length" class="list">
-      <button v-for="a in filtered" :key="a.id" class="card asset" type="button" @click="toForm(a.id)">
+      <button
+        v-for="a in filtered"
+        :key="a.id"
+        class="card asset"
+        :class="{ retired: a.status === 'replaced' }"
+        type="button"
+        @click="toForm(a.id)"
+      >
         <div class="icon-wrap">
           <Cube :size="22" />
         </div>
         <div class="main">
           <div class="title-row">
             <span class="title">{{ a.name }}</span>
-            <span class="status" :class="statusText(a.daysToReplace).tone">
+            <span v-if="a.status === 'replaced'" class="status replaced">已换新</span>
+            <span v-else class="status" :class="statusText(a.daysToReplace).tone">
               {{ statusText(a.daysToReplace).text }}
             </span>
           </div>
@@ -301,6 +309,15 @@ h1 {
 
 .meta {
   margin-top: 4px;
+}
+
+.asset.retired {
+  opacity: 0.62;
+}
+
+.status.replaced {
+  background: #eef2f0;
+  color: var(--color-text-3);
 }
 
 .chev {

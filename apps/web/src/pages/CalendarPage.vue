@@ -66,7 +66,7 @@ const events = computed<Record<string, Ev[]>>(() => {
     (map[dateKey] ||= []).push(ev);
   };
 
-  for (const a of store.views) {
+  for (const a of store.activeViews) {
     if (a.warrantyMonths > 0) {
       push(a.warrantyEndDate, {
         kind: 'warranty',

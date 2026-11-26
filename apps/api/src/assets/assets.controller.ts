@@ -12,7 +12,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser, JwtPayloadUser } from '../auth/current-user.decorator';
 import { AssetsService } from './assets.service';
-import { CreateAssetDto, UpdateAssetDto } from './dto';
+import { CreateAssetDto, ReplaceAssetDto, UpdateAssetDto } from './dto';
 
 @Controller('assets')
 @UseGuards(AuthGuard('jwt'))
@@ -41,6 +41,16 @@ export class AssetsController {
     @Headers('x-household-id') hid?: string,
   ) {
     return this.assets.update(user.userId, hid, id, dto);
+  }
+
+  @Post(':id/replace')
+  replace(
+    @CurrentUser() user: JwtPayloadUser,
+    @Param('id') id: string,
+    @Body() dto: ReplaceAssetDto,
+    @Headers('x-household-id') hid?: string,
+  ) {
+    return this.assets.replace(user.userId, hid, id, dto);
   }
 
   @Delete(':id')

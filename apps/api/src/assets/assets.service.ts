@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { calcReplacementDate, calcWarrantyEndDate, type UsageLevel } from '@hmm/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { HouseholdsService } from '../households/households.service';
-import { CreateAssetDto, UpdateAssetDto } from './dto';
+import { CreateAssetDto, ReplaceAssetDto, UpdateAssetDto } from './dto';
 
 /** 与前端 StoredAsset 对齐的返回结构 */
 interface AssetRow {
@@ -17,6 +17,8 @@ interface AssetRow {
   expectedLifeMonths: number | null;
   usageLevel: string | null;
   note: string | null;
+  status: string;
+  replacedByAssetId: string | null;
   expectedReplacementDate: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -53,6 +55,8 @@ export class AssetsService {
       expectedLifeMonths: lifeMonths,
       usageLevel: usage,
       notes: a.note ?? '',
+      status: a.status,
+      replacedByAssetId: a.replacedByAssetId ?? null,
       warrantyEndDate,
       expectedReplaceDate,
       createdAt: a.createdAt,
@@ -113,6 +117,54 @@ export class AssetsService {
       },
     });
     return this.toDto(row as unknown as AssetRow);
+  }
+
+  /**
+   * 以旧换新：新建一件接替的资产，旧件标记 replaced 并指向新件。
+   * 旧件不删——保留历史（发票、维修记录都还挂在它身上）。
+   */
+  async replace(
+    userId: string,
+    headerId: string | undefined,
+    id: string,
+    dto: ReplaceAssetDto,
+  ) {
+    const { household } = await this.households.resolve(userId, headerId);
+    const old = await this.prisma.asset.findFirst({
+      where: { id, householdId: household.id, deletedAt: null },
+    });
+    if (!old) throw new NotFoundException('资产不存在');
+    if (old.status === 'replaced') throw new BadRequestException('这件资产已经标记过换新了');
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const fresh = await tx.asset.create({
+        data: {
+          householdId: household.id,
+          createdBy: userId,
+          name: dto.name?.trim() || old.name,
+          categoryKey: old.categoryKey,
+          categoryName: old.categoryName,
+          locationName: dto.location ?? old.locationName,
+          purchaseDate: dto.purchaseDate,
+          priceFen: dto.priceFen,
+          warrantyMonths: dto.warrantyMonths ?? old.warrantyMonths,
+          expectedLifeMonths: dto.expectedLifeMonths ?? old.expectedLifeMonths,
+          usageLevel: dto.usageLevel ?? old.usageLevel,
+          note: dto.note ?? `接替「${old.name}」`,
+          status: 'in_use',
+        },
+      });
+      await tx.asset.update({
+        where: { id },
+        data: { status: 'replaced', replacedByAssetId: fresh.id },
+      });
+      return fresh;
+    });
+
+    return {
+      old: this.toDto({ ...old, status: 'replaced', replacedByAssetId: created.id } as unknown as AssetRow),
+      new: this.toDto(created as unknown as AssetRow),
+    };
   }
 
   /** 软删除：留痕，误删可从数据库恢复 */

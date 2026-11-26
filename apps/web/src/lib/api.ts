@@ -329,6 +329,10 @@ export const api = {
     return request<T>(`/assets/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
   },
 
+  replaceAsset<T>(id: string, payload: { purchaseDate: string; priceFen: number; name?: string; warrantyMonths?: number; expectedLifeMonths?: number; usageLevel?: 'low' | 'mid' | 'high' }) {
+    return request<T>(`/assets/${id}/replace`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
   deleteAsset(id: string) {
     return request<{ ok: boolean }>(`/assets/${id}`, { method: 'DELETE' });
   },

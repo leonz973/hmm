@@ -51,6 +51,44 @@ const form = reactive<FormState>({
 const errors = reactive<Record<string, string>>({});
 const saved = ref(false);
 
+/** 当前正在编辑的资产（带派生字段），换新时要用它的预估价 */
+const currentAsset = computed(() => (editingId.value ? store.views.find((a) => a.id === editingId.value) : undefined));
+const isRetired = computed(() => currentAsset.value?.status === 'replaced');
+
+const replaceOpen = ref(false);
+const replaceBusy = ref(false);
+const replaceForm = reactive({ purchaseDate: '', priceYuan: '', warrantyMonths: '', expectedLifeMonths: '' });
+
+function openReplace() {
+  const a = currentAsset.value;
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  replaceForm.purchaseDate = today;
+  replaceForm.priceYuan = a ? String((a.estimatedReplaceCostFen / 100).toFixed(2)) : form.priceYuan;
+  replaceForm.warrantyMonths = a ? String(a.warrantyMonths) : form.warrantyMonths;
+  replaceForm.expectedLifeMonths = a ? String(a.expectedLifeMonths) : form.expectedLifeMonths;
+  replaceOpen.value = true;
+}
+
+async function confirmReplace() {
+  if (!editingId.value || replaceBusy.value) return;
+  const priceFen = parseYuanToFen(replaceForm.priceYuan) ?? 0;
+  if (!replaceForm.purchaseDate || priceFen <= 0) return;
+  replaceBusy.value = true;
+  try {
+    await store.replace(editingId.value, {
+      purchaseDate: replaceForm.purchaseDate,
+      priceFen,
+      warrantyMonths: Number(replaceForm.warrantyMonths) || 0,
+      expectedLifeMonths: Number(replaceForm.expectedLifeMonths) || undefined,
+    });
+    replaceOpen.value = false;
+    void router.push('/assets');
+  } finally {
+    replaceBusy.value = false;
+  }
+}
+
 const groupedCategories = computed(() => {
   const parents = BUILTIN_CATEGORIES.filter((c) => !c.parent);
   return parents.map((p) => ({
@@ -170,6 +208,10 @@ const usageOptions: Array<{ value: UsageLevel; label: string; hint: string }> = 
       <button v-if="isEdit" class="icon-btn danger" type="button" aria-label="删除" @click="removeAsset">
         <Trash :size="18" />
       </button>
+    </div>
+
+    <div v-if="isRetired" class="retired-note">
+      这件已经换新过了，下面的记录是留档；需要再改信息仍然可以改。
     </div>
 
     <form class="card form" @submit.prevent="submit">
@@ -296,6 +338,47 @@ const usageOptions: Array<{ value: UsageLevel; label: string; hint: string }> = 
         <button class="ghost" type="button" @click="router.back()">取消</button>
       </div>
     </form>
+
+    <button v-if="isEdit && !isRetired" class="replace-btn" type="button" @click="openReplace">
+      <span>这件已经换新了？记录新买的那件</span>
+      <span class="tiny">旧件会自动标记为「已换新」，历史记录和发票都保留</span>
+    </button>
+
+    <div v-if="replaceOpen" class="overlay" @click.self="replaceOpen = false">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h2>记录换新</h2>
+          <button class="icon-btn" type="button" aria-label="关闭" @click="replaceOpen = false">✕</button>
+        </div>
+        <div class="sheet-body">
+          <label class="field">
+            <span class="label">新购日期</span>
+            <input v-model="replaceForm.purchaseDate" type="date" />
+          </label>
+          <label class="field">
+            <span class="label">实付金额（元）</span>
+            <input v-model="replaceForm.priceYuan" type="number" min="0" step="0.01" inputmode="decimal" />
+            <span class="tiny">默认填的是按今天价格估的换新预算，可以改成实际成交价</span>
+          </label>
+          <div class="row2">
+            <label class="field">
+              <span class="label">质保（月）</span>
+              <input v-model="replaceForm.warrantyMonths" type="number" min="0" step="1" />
+            </label>
+            <label class="field">
+              <span class="label">预计寿命（月）</span>
+              <input v-model="replaceForm.expectedLifeMonths" type="number" min="1" step="1" />
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" type="button" :disabled="replaceBusy" @click="confirmReplace">
+            {{ replaceBusy ? '记录中…' : '确认换新' }}
+          </button>
+          <button class="ghost" type="button" @click="replaceOpen = false">取消</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -305,6 +388,79 @@ const usageOptions: Array<{ value: UsageLevel; label: string; hint: string }> = 
   gap: var(--space-md);
   max-width: 720px;
   margin: 0 auto;
+}
+
+.retired-note {
+  margin-bottom: var(--space-md);
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 13px;
+}
+
+.replace-btn {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin-top: var(--space-md);
+  padding: 14px 16px;
+  border: 1px dashed var(--color-border, #d9e2dc);
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.replace-btn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-weak);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  background: rgba(15, 23, 42, 0.32);
+  z-index: 20;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 88vh;
+  overflow: auto;
+  padding: var(--space-lg);
+  background: var(--color-card);
+  border-radius: 20px 20px 0 0;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.sheet-body {
+  display: grid;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .overlay {
+    place-items: center;
+  }
+  .sheet {
+    max-width: 480px;
+    border-radius: var(--radius-card);
+  }
 }
 
 .head {

@@ -58,7 +58,7 @@ export class RemindersService {
   /** 按当前日期算出这个家庭该提醒的事项（不落库，纯计算） */
   async collect(householdId: string, warrantyLead: number, replaceLead: number): Promise<ReminderItem[]> {
     const assets = await this.prisma.asset.findMany({
-      where: { householdId, deletedAt: null },
+      where: { householdId, deletedAt: null, status: 'in_use' },
       orderBy: { createdAt: 'asc' },
     });
 

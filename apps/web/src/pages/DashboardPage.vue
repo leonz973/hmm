@@ -39,7 +39,7 @@ interface Item {
 
 const items = computed<Item[]>(() => {
   const out: Item[] = [];
-  for (const a of store.views) {
+  for (const a of store.activeViews) {
     const wDays = Math.round(
       (new Date(a.warrantyEndDate + 'T00:00:00').getTime() - Date.now()) / 86400000,
     );
@@ -83,7 +83,7 @@ const cashflow = computed(() => {
   for (let i = 0; i < 12; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const replaceFen = store.views
+    const replaceFen = store.activeViews
       .filter((a) => a.expectedReplaceDate.slice(0, 7) === key)
       .reduce((s, a) => s + a.estimatedReplaceCostFen, 0);
     const fixedFen = fixedStore.next12Months.find((m) => m.month === key)?.amountFen ?? 0;
@@ -99,13 +99,13 @@ const reservePerMonth = computed(() =>
 const yearReplaceTotal = computed(() => cashflow.value.reduce((s, m) => s + m.replaceFen, 0));
 
 const next12Cost = computed(() =>
-  store.views
+  store.activeViews
     .filter((a) => a.daysToReplace <= 365)
     .reduce((s, a) => s + a.estimatedReplaceCostFen, 0),
 );
 
 const bigTicket = computed(() =>
-  store.views
+  store.activeViews
     .filter((a) => a.daysToReplace <= 365 && a.estimatedReplaceCostFen >= 200000)
     .sort((a, b) => a.daysToReplace - b.daysToReplace)
     .slice(0, 2),
@@ -145,7 +145,7 @@ function money(fen?: number) {
         <div>
           <div class="tiny">未来 12 个月预计更换</div>
           <div class="big accent num">{{ money(next12Cost) }}</div>
-          <div class="tiny">{{ store.views.filter((a) => a.daysToReplace <= 365).length }} 件资产到期</div>
+          <div class="tiny">{{ store.activeViews.filter((a) => a.daysToReplace <= 365).length }} 件资产到期</div>
         </div>
       </section>
 

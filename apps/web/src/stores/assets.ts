@@ -23,6 +23,9 @@ export interface StoredAsset {
   expectedLifeMonths: number;
   usageLevel: UsageLevel;
   notes?: string;
+  /** in_use | replaced | scrapped…（本地模式只用到前两个） */
+  status?: 'in_use' | 'replaced' | 'scrapped' | 'donated' | 'sold';
+  replacedByAssetId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -181,8 +184,15 @@ export const useAssetsStore = defineStore('assets', () => {
   /** 最该换的排前面；已超期的负数排最前 */
   const sortedViews = computed(() => [...views.value].sort((a, b) => a.daysToReplace - b.daysToReplace));
 
-  const totalValueFen = computed(() => items.value.reduce((s, a) => s + a.priceFen, 0));
-  const totalResidualFen = computed(() => views.value.reduce((s, a) => s + a.residualValueFen, 0));
+  /** 提醒、金额预估、现金流只算还在用的：已换新的旧件不再占预算 */
+  const activeViews = computed(() => views.value.filter((a) => (a.status ?? 'in_use') === 'in_use'));
+
+  const totalValueFen = computed(() =>
+    items.value.filter((a) => (a.status ?? 'in_use') === 'in_use').reduce((s, a) => s + a.priceFen, 0),
+  );
+  const totalResidualFen = computed(() =>
+    activeViews.value.reduce((s, a) => s + a.residualValueFen, 0),
+  );
 
   function getById(id: string): StoredAsset | undefined {
     return items.value.find((a) => a.id === id);
@@ -227,6 +237,45 @@ export const useAssetsStore = defineStore('assets', () => {
     items.value[idx] = { ...items.value[idx], ...patch, id, updatedAt: new Date().toISOString() };
   }
 
+  /** 以旧换新：旧件标记 replaced，新件进列表 */
+  async function replace(
+    id: string,
+    payload: {
+      purchaseDate: string;
+      priceFen: number;
+      name?: string;
+      warrantyMonths?: number;
+      expectedLifeMonths?: number;
+      usageLevel?: UsageLevel;
+    },
+  ): Promise<string> {
+    if (auth.isCloud) {
+      const res = await api.replaceAsset<{ old: StoredAsset; new: StoredAsset }>(id, payload);
+      const idx = items.value.findIndex((a) => a.id === id);
+      if (idx >= 0) items.value[idx] = res.old;
+      items.value = [res.new, ...items.value];
+      return res.new.id;
+    }
+    const old = items.value.find((a) => a.id === id);
+    if (!old) throw new Error('资产不存在');
+    const now = new Date().toISOString();
+    const newId = crypto.randomUUID();
+    items.value.push({
+      ...old,
+      ...payload,
+      name: payload.name?.trim() || old.name,
+      id: newId,
+      status: 'in_use',
+      replacedByAssetId: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    old.status = 'replaced';
+    old.replacedByAssetId = newId;
+    old.updatedAt = now;
+    return newId;
+  }
+
   async function remove(id: string) {
     if (auth.isCloud) await api.deleteAsset(id);
     items.value = items.value.filter((a) => a.id !== id);
@@ -252,6 +301,7 @@ export const useAssetsStore = defineStore('assets', () => {
     syncError,
     hydrateFromCloud,
     views,
+    activeViews,
     sortedViews,
     totalValueFen,
     totalResidualFen,
@@ -259,6 +309,7 @@ export const useAssetsStore = defineStore('assets', () => {
     getById,
     create,
     update,
+    replace,
     remove,
     clearAll,
     restoreDemo,
