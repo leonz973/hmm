@@ -1,58 +1,56 @@
 /* HMM 设计令牌 v2 · 大圆角 / 毛玻璃 / 光影（docs/DESIGN.md） */
 :root {
-  /* —— 品牌色 —— */
-  --color-primary: #059669;
-  --color-primary-hover: #047857;
-  --color-primary-weak: #e7f7f0;
-  --color-accent: #d97706;
-  --color-accent-weak: #fef3c7;
-  --color-info: #0ea5e9;
-  --color-info-weak: #e0f2fe;
-  --color-danger: #e11d48;
-  --color-danger-weak: #ffe4e6;
+  /* —— 品牌色（纸感：墨绿 + 陶土橙） —— */
+  --color-primary: #1c4b3c;
+  --color-primary-hover: #13382d;
+  --color-primary-weak: #e4eae1;
+  --color-accent: #b0452d;
+  --color-accent-weak: #f4e4da;
+  --color-info: #2f6690;
+  --color-info-weak: #e3edf4;
+  --color-danger: #a52a2a;
+  --color-danger-weak: #f7e1de;
 
-  /* —— 文字 —— */
-  --color-text: #0b1f19;
-  --color-text-2: #41564e;
-  --color-text-3: #6d827a;
+  /* —— 文字：墨 —— */
+  --color-text: #1b1a17;
+  --color-text-2: #4a463d;
+  --color-text-3: #7c7566;
 
-  /* —— 底与面 —— */
-  --color-bg: #eef4f0;
-  --color-card: #ffffff;
-  --color-border: rgba(11, 31, 25, 0.08);
+  /* —— 底与面：纸 —— */
+  --color-bg: #f1ecdf;
+  --color-card: #fdfaf2;
+  --color-border: rgba(27, 26, 23, 0.14);
 
-  /* —— 玻璃拟态 —— */
-  --glass-bg: rgba(255, 255, 255, 0.82);
-  --glass-bg-strong: rgba(255, 255, 255, 0.94);
-  --glass-bg-soft: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(255, 255, 255, 0.9);
-  --glass-blur: 22px;
-  --glass-saturate: 165%;
+  /* —— 纸面不用玻璃：靠描边和硬投影分层 —— */
+  --glass-bg: #fdfaf2;
+  --glass-bg-strong: #fbf6ec;
+  --glass-bg-soft: #f6f1e5;
+  --glass-border: rgba(27, 26, 23, 0.16);
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
 
   /* —— 渐变 —— */
-  --grad-primary: linear-gradient(135deg, #34d399 0%, #059669 52%, #047857 100%);
-  --grad-accent: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  --grad-text: linear-gradient(120deg, #064e3b 0%, #059669 55%, #0d9488 100%);
-  --grad-sheen: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(255, 255, 255, 0) 45%
-  );
+  --grad-primary: linear-gradient(135deg, #2a6a55 0%, #1c4b3c 100%);
+  --grad-accent: linear-gradient(135deg, #c25a3f 0%, #a8432c 100%);
+  --grad-text: linear-gradient(120deg, #1b1a17 0%, #2a5a48 100%);
+  --grad-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 100%);
 
-  /* —— 圆角 —— */
-  --radius-card: 28px;
-  --radius-control: 16px;
-  --radius-sheet: 32px;
+  /* —— 圆角：印刷品的小圆角 —— */
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-sheet: 18px;
   --radius-pill: 999px;
 
-  /* —— 光影 —— */
-  --shadow-card: 0 0 0 1px rgba(6, 78, 59, 0.05), 0 2px 4px rgba(6, 52, 38, 0.04),
-    0 24px 48px -28px rgba(6, 78, 59, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  --shadow-card-hover: 0 0 0 1px rgba(6, 78, 59, 0.07), 0 4px 9px rgba(6, 52, 38, 0.05),
-    0 34px 64px -30px rgba(6, 78, 59, 0.55), inset 0 1px 0 rgba(255, 255, 255, 1);
-  --shadow-float: 0 30px 80px -30px rgba(6, 78, 59, 0.45);
-  --shadow-glow: 0 14px 30px -14px rgba(5, 150, 105, 0.65);
-  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* —— 光影：偏移实影（编辑部/印刷） —— */
+  --shadow-card: 4px 4px 0 rgba(27, 26, 23, 0.07), 0 0 0 1px rgba(27, 26, 23, 0.13);
+  --shadow-card-hover: 6px 6px 0 rgba(27, 26, 23, 0.1), 0 0 0 1px rgba(27, 26, 23, 0.18);
+  --shadow-float: 8px 8px 0 rgba(27, 26, 23, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(27, 26, 23, 0.18);
+  --shadow-inset: inset 0 0 0 rgba(0, 0, 0, 0);
+
+  /* —— 底部 tab 选中态 —— */
+  --tab-active-bg: rgba(28, 75, 60, 0.1);
+  --tab-active-shadow: inset 0 0 0 1px rgba(27, 26, 23, 0.12);
 
   /* —— 间距 —— */
   --space-xs: 4px;
@@ -104,6 +102,8 @@
   --shadow-float: 0 30px 80px -24px rgba(0, 0, 0, 0.75);
   --shadow-glow: 0 14px 34px -16px rgba(52, 211, 153, 0.5);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --tab-active-bg: rgba(52, 211, 153, 0.14);
+  --tab-active-shadow: inset 0 0 0 1px rgba(122, 255, 200, 0.24), 0 10px 24px -16px rgba(52, 211, 153, 0.7);
   --glow-num: 0 0 28px rgba(52, 211, 153, 0.34);
   --glow-accent: 0 0 28px rgba(251, 191, 36, 0.3);
 }
@@ -430,4 +430,75 @@ textarea::placeholder {
 :root[data-theme='dark'] .tabs button.on,
 :root[data-theme='dark'] .pill.on {
   box-shadow: 0 0 0 1px rgba(122, 255, 200, 0.22), 0 12px 26px -16px rgba(52, 211, 153, 0.6);
+}
+
+/* —— 纸感/编辑部 专属覆盖（浅色） —— */
+:root:not([data-theme='dark']) body {
+  /* 极淡的横线，像稿纸/账簿 */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(27, 26, 23, 0.026) 0 1px,
+    transparent 1px 26px
+  );
+  background-attachment: fixed;
+}
+
+:root:not([data-theme='dark']) .topbar {
+  border-bottom: 1px solid rgba(27, 26, 23, 0.12);
+}
+
+:root:not([data-theme='dark']) body::before {
+  background:
+    radial-gradient(48% 40% at 100% 0%, rgba(176, 69, 45, 0.045), transparent 72%),
+    radial-gradient(46% 38% at 0% 100%, rgba(28, 75, 60, 0.05), transparent 72%);
+}
+
+:root:not([data-theme='dark']) .card::before {
+  display: none;
+}
+
+:root:not([data-theme='dark']) .hero {
+  background: var(--color-card);
+}
+
+:root:not([data-theme='dark']) .card.alert {
+  border-color: rgba(176, 69, 45, 0.3);
+  background: linear-gradient(180deg, #f6e8d8, var(--color-card) 66%);
+}
+
+:root:not([data-theme='dark']) .seg.replace {
+  background: #b0452d;
+}
+
+:root:not([data-theme='dark']) .seg.fixed {
+  background: #2f6b56;
+}
+
+:root:not([data-theme='dark']) .flow-bar {
+  border-radius: 4px;
+  background: rgba(27, 26, 23, 0.07);
+  box-shadow: none;
+}
+
+:root:not([data-theme='dark']) .card::after {
+  display: none;
+}
+
+:root:not([data-theme='dark']) .brand-name,
+:root:not([data-theme='dark']) h1,
+:root:not([data-theme='dark']) h2,
+:root:not([data-theme='dark']) .big {
+  font-family: 'Noto Serif SC', 'Songti SC', 'Source Han Serif SC', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+:root:not([data-theme='dark']) .card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root:not([data-theme='dark']) .tabs button.on {
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px rgba(27, 26, 23, 0.16), 2px 2px 0 rgba(27, 26, 23, 0.06);
 }

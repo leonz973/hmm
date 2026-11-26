@@ -1,0 +1,38 @@
+import { spawn } from 'node:child_process';
+const CHROME='C:/Program Files/Google/Chrome/Application/chrome.exe';
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const chrome=spawn(CHROME,['--headless=new','--disable-gpu','--no-first-run','--user-data-dir=L:/ai_projects/HMM/.shots/cdp3','--remote-debugging-port=9335','--window-size=390,844','http://127.0.0.1:5173/'],{stdio:'ignore'});
+let wsUrl;
+for(let i=0;i<40;i++){await sleep(300);try{const l=await(await fetch('http://127.0.0.1:9335/json/list')).json();const p=l.find(t=>t.type==='page');if(p){wsUrl=p.webSocketDebuggerUrl;break;}}catch{}}
+const ws=new WebSocket(wsUrl);let id=0;const pend=new Map();const errs=[];
+const send=(m,p={})=>new Promise((res,rej)=>{const i=++id;pend.set(i,{res,rej});ws.send(JSON.stringify({id:i,method:m,params:p}));});
+ws.addEventListener('message',e=>{const m=JSON.parse(e.data);if(m.method==='Runtime.exceptionThrown')errs.push(m.params.exceptionDetails?.exception?.description||m.params.exceptionDetails?.text);if(m.id&&pend.has(m.id)){const{res,rej}=pend.get(m.id);pend.delete(m.id);m.error?rej(new Error(JSON.stringify(m.error))):res(m.result);}});
+await new Promise(r=>ws.addEventListener('open',r));
+await send('Page.enable');await send('Runtime.enable');
+await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});
+await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
+const ev=async(e)=>(await send('Runtime.evaluate',{expression:e,returnByValue:true,awaitPromise:true})).result?.value;
+const tap=async(sel,idx=0)=>{
+  const r=await ev(`(()=>{const els=[...document.querySelectorAll(${JSON.stringify(sel)})];const el=els[${idx}];if(!el)return null;const b=el.getBoundingClientRect();return{x:b.x+b.width/2,y:b.y+b.height/2};})()`);
+  if(!r)return false;
+  await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:r.x,y:r.y}]});
+  await sleep(50);
+  await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await sleep(900);return true;
+};
+await sleep(2200);
+const steps=[];
+steps.push({step:'start',path:await ev('location.pathname')});
+await tap('.tab',1); steps.push({step:'tab资产',path:await ev('location.pathname'),head:(await ev(`document.querySelector('main')?.innerText.slice(0,12)`)).replace(/\n/g,'|')});
+await tap('.asset-row, .asset, .row-link, li.asset',0);
+steps.push({step:'点第一条资产',path:await ev('location.pathname'),head:(await ev(`document.querySelector('main')?.innerText.slice(0,14)`)).replace(/\n/g,'|')});
+await ev('history.back()'); await sleep(900);
+steps.push({step:'返回',path:await ev('location.pathname'),head:(await ev(`document.querySelector('main')?.innerText.slice(0,12)`)).replace(/\n/g,'|')});
+await tap('.tab',3); steps.push({step:'tab账目',path:await ev('location.pathname')});
+const tabsTxt = await ev(`[...document.querySelectorAll('.tabs button')].map(b=>b.innerText.trim())`);
+steps.push({step:'账目内 tab',tabs: tabsTxt});
+await ev(`[...document.querySelectorAll('.tabs button')].find(b=>b.innerText.includes('发票'))?.click()`);
+await sleep(600);
+steps.push({step:'切到发票',hasUpload: await ev(`!!document.querySelector('main')?.innerText.includes('上传')||!!document.querySelector('main')?.innerText.includes('发票抬头')||!!document.querySelector('main')?.innerText.includes('附件')`),head:(await ev(`document.querySelector('main')?.innerText.slice(0,80)`)).replace(/\n/g,'|')});
+console.log(JSON.stringify({steps,errs},null,2));
+ws.close();chrome.kill();

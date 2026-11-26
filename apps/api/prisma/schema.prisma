@@ -66,6 +66,8 @@ model Membership {
   household Household @relation(fields: [householdId], references: [id])
 
   @@unique([userId, householdId])
+  savingGoals         SavingGoal[]
+  insurancePolicies   InsurancePolicy[]
 }
 
 model Category {
@@ -333,4 +335,42 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model SavingGoal {
+  id            String    @id @default(cuid())
+  householdId   String
+  household     Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name          String
+  targetFen     Int
+  savedFen      Int       @default(0)
+  targetDate    String
+  linkedAssetId String?
+  note          String?
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([householdId])
+}
+
+model InsurancePolicy {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name        String
+  kind        String
+  company     String?
+  coverageFen Int       @default(0)
+  premiumFen  Int       @default(0)
+  cycle       String    @default("每年")
+  startDate   String
+  endDate     String
+  contact     String?
+  note        String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([householdId])
 }

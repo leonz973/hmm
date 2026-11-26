@@ -218,7 +218,7 @@ function money(fen?: number) {
         <div class="reserve">
           <div>
             <div class="tiny">建议每月预留</div>
-            <div class="big num">¥{{ money(reservePerMonth) }}</div>
+            <div class="big num">{{ money(reservePerMonth) }}</div>
           </div>
           <div class="reserve-note tiny">
             全年更换 {{ money(yearReplaceTotal) }} 元 + 固定支出
@@ -226,7 +226,7 @@ function money(fen?: number) {
           </div>
         </div>
         <div class="flow">
-          <div v-for="m in cashflow" :key="m.month" class="flow-col" :title="`${m.month} 合计 ¥${money(m.totalFen)}`">
+          <div v-for="m in cashflow" :key="m.month" class="flow-col" :title="`${m.month} 合计 ${money(m.totalFen)}`">
             <div class="flow-bar">
               <div
                 class="seg replace"

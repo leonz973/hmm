@@ -231,10 +231,10 @@ initInstallPrompt();
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 54px;
+  gap: 8px;
+  min-height: 58px;
   width: 100%;
-  padding: 4px 0 6px;
+  padding: 7px 4px 9px;
   border: none;
   background: transparent;
   font-family: inherit;
@@ -256,18 +256,20 @@ initInstallPrompt();
   font-weight: 600;
 }
 
+.tab > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 选中态：整块（图标 + 文字）都落在胶囊里，四周留出余量 */
 .tab.active::before {
   content: '';
   position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 54px;
-  height: 34px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  z-index: -1;
+  inset: 2px 3px;
+  border-radius: 17px;
+  background: var(--tab-active-bg);
+  box-shadow: var(--tab-active-shadow);
+  z-index: 0;
 }
 
 .tab:active {
