@@ -18,6 +18,9 @@ import { api } from '@/lib/api';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
 import { useAuthStore } from '@/stores/auth';
 import { useAssetsStore } from '@/stores/assets';
+import { useFixedExpensesStore } from '@/stores/fixedExpenses';
+import { useBillsStore } from '@/stores/bills';
+import { useInvoicesStore } from '@/stores/invoices';
 import {
   REPLACE_LEAD_OPTIONS,
   WARRANTY_LEAD_OPTIONS,
@@ -27,6 +30,9 @@ import {
 const prefs = usePrefsStore();
 const auth = useAuthStore();
 const assets = useAssetsStore();
+const fixedStore = useFixedExpensesStore();
+const billsStore = useBillsStore();
+const invoicesStore = useInvoicesStore();
 const router = useRouter();
 const remindModal = ref(false);
 const familyModal = ref(false);
@@ -205,7 +211,15 @@ async function onFile(e: Event) {
   const file = input.files?.[0];
   if (!file) return;
   const text = await file.text();
-  const result = importJSON(text, 'merge');
+  const result = await importJSON(text, 'merge');
+  if (auth.isCloud && result.ok) {
+    await Promise.all([
+      assets.hydrateFromCloud(),
+      fixedStore.hydrateFromCloud(),
+      billsStore.hydrateFromCloud(),
+      invoicesStore.hydrateFromCloud(),
+    ]);
+  }
   flash(result.message);
   input.value = '';
 }
@@ -267,7 +281,10 @@ function onClear() {
         <DownloadSimple :size="18" />
         <span>数据</span>
       </div>
-      <p class="tiny desc">换个浏览器、换台电脑，数据不会自己跟过去。定期导出备份，相当于给自己留个后路。</p>
+      <p v-if="auth.isCloud" class="tiny desc">
+        当前是云同步模式：导出的是服务器上的这份数据；导入会写进当前家庭。
+      </p>
+      <p v-else class="tiny desc">换个浏览器、换台电脑，数据不会自己跟过去。定期导出备份，相当于给自己留个后路。</p>
       <div class="btn-row">
         <button class="mini" type="button" @click="onExportJSON">
           <DownloadSimple :size="16" />
@@ -283,10 +300,11 @@ function onClear() {
           <UploadSimple :size="16" />
           导入备份
         </button>
-        <button class="mini danger" type="button" @click="onClear">
+        <button v-if="!auth.isCloud" class="mini danger" type="button" @click="onClear">
           <Trash :size="16" />
           清空数据
         </button>
+        <span v-else class="tiny">云端数据存在服务器上，这里不提供一键清空；要删请在资产/账目页逐条删除。</span>
       </div>
       <input ref="fileInput" type="file" accept="application/json,.json" hidden @change="onFile" />
     </section>
