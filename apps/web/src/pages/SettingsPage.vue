@@ -14,10 +14,12 @@ import {
   PhCloudArrowUp as CloudIcon,
   PhCopy as Copy,
   PhChartPieSlice as ChartPie,
+  PhDeviceMobile as DeviceMobile,
 } from '@phosphor-icons/vue';
 import { api } from '@/lib/api';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
 import { useAuthStore } from '@/stores/auth';
+import { useInstall } from '@/lib/install';
 import { useAssetsStore } from '@/stores/assets';
 import { useFixedExpensesStore } from '@/stores/fixedExpenses';
 import { useBillsStore } from '@/stores/bills';
@@ -30,6 +32,8 @@ import {
 
 const prefs = usePrefsStore();
 const auth = useAuthStore();
+const install = useInstall();
+const installModal = ref(false);
 const assets = useAssetsStore();
 const fixedStore = useFixedExpensesStore();
 const billsStore = useBillsStore();
@@ -186,6 +190,12 @@ async function joinFamily() {
   }
 }
 
+async function doInstall() {
+  const result = await install.install();
+  if (result === 'accepted') flash('已开始安装，看看手机桌面');
+  else if (result === 'dismissed') flash('已取消安装');
+}
+
 async function doLogout() {
   if (!confirm('退出登录？退出后这台设备回到本地模式，云端数据不会丢。')) return;
   await auth.logout();
@@ -280,6 +290,11 @@ function onClear() {
         <span>统计报表</span>
         <span class="tiny">支出构成 · 折旧 · 未来三年</span>
       </button>
+      <button class="row" type="button" @click="installModal = true">
+        <DeviceMobile :size="18" />
+        <span>安装到手机桌面</span>
+        <span class="tiny">{{ install.isInstalled.value ? '已安装' : '像 App 一样打开' }}</span>
+      </button>
     </section>
 
     <section class="card data-card">
@@ -372,6 +387,40 @@ function onClear() {
           <button class="mini primary" type="button" @click="familyModal = false; router.push('/login')">
             去登录
           </button>
+        </template>
+      </div>
+    </div>
+
+    <div v-if="installModal" class="overlay" @click.self="installModal = false">
+      <div class="sheet">
+        <div class="sheet-head">
+          <strong>安装到手机桌面</strong>
+          <button class="mini" type="button" @click="installModal = false">关闭</button>
+        </div>
+        <template v-if="install.isInstalled.value">
+          <p class="tiny desc">已经装好了：从桌面图标打开，就是全屏、无地址栏的样子。</p>
+        </template>
+        <template v-else>
+          <p class="tiny desc">装到桌面后可以全屏打开、断网也能看已加载的页面，不用每次输网址。</p>
+          <template v-if="install.onIOS.value">
+            <ol class="steps tiny">
+              <li>用 Safari 打开这个页面</li>
+              <li>点底部的「分享」按钮</li>
+              <li>选「添加到主屏幕」，再点「添加」</li>
+            </ol>
+          </template>
+          <template v-else>
+            <ol class="steps tiny">
+              <li>用 Chrome / Edge 打开这个页面</li>
+              <li>点右上角菜单，选「安装应用」或「添加到主屏幕」</li>
+              <li>桌面出现 HMM 图标即完成</li>
+            </ol>
+            <div class="sheet-actions">
+              <button class="primary" type="button" :disabled="!install.canPrompt.value" @click="doInstall">
+                {{ install.canPrompt.value ? '立即安装' : '当前浏览器未提供安装入口' }}
+              </button>
+            </div>
+          </template>
         </template>
       </div>
     </div>
@@ -761,5 +810,13 @@ h1 {
   color: #fff;
   font-size: 13px;
   z-index: 60;
+}
+.steps {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.5;
 }
 </style>

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { initInstallPrompt } from '@/lib/install';
 import {
   PhHouse as HouseIcon,
   PhArmchair as Armchair,
@@ -34,6 +35,8 @@ const tabs = [
 ];
 
 const current = computed(() => route.path);
+
+initInstallPrompt();
 </script>
 
 <template>
@@ -237,30 +240,9 @@ const current = computed(() => route.path);
   .content {
     margin-left: 88px;
     padding: var(--space-lg);
+    padding-bottom: var(--space-xl);
   }
-  .local-hint {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--color-accent);
-  background: #fffbeb;
-  border-bottom: 1px solid #fde68a;
-  padding: 6px var(--space-md);
-}
-
-.local-hint button {
-  border: 0;
-  background: transparent;
-  color: var(--color-accent);
-  font-weight: 600;
-  font-size: 12px;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.topbar {
+  .topbar {
     padding-left: calc(88px + var(--space-lg));
   }
 }

@@ -13,6 +13,9 @@ import AssetDetailPage from './pages/AssetDetailPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import ReportsPage from './pages/ReportsPage.vue';
 import { useAuthStore } from './stores/auth';
+import { registerSW } from 'virtual:pwa-register';
+
+registerSW({ immediate: true });
 
 const router = createRouter({
   history: createWebHistory(),
