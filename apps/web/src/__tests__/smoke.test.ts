@@ -12,6 +12,7 @@ import AssetFormPage from '@/pages/AssetFormPage.vue';
 import LoginPage from '@/pages/LoginPage.vue';
 import AssetDetailPage from '@/pages/AssetDetailPage.vue';
 import ReportsPage from '@/pages/ReportsPage.vue';
+import GoalsPage from '@/pages/GoalsPage.vue';
 
 /** 页面能不能真正挂载渲染 —— 构建通过不等于运行时不出错 */
 async function mountPage(component: any) {
@@ -148,5 +149,14 @@ describe('页面挂载冒烟', () => {
     expect(html).toContain('折旧与残值');
     expect(html).toContain('未来三年的资金压力');
     expect(html).toContain('大家电');
+  });
+
+  it('目标与保险页能渲染两个 tab', async () => {
+    const w = await mountPage(GoalsPage);
+    const html = w.html();
+    expect(html).toContain('目标与保险');
+    expect(html).toContain('储蓄目标');
+    expect(html).toContain('保险台账');
+    expect(html).toContain('每月要存才能按时达成');
   });
 });

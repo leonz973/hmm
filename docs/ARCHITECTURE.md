@@ -51,7 +51,7 @@ HMM/
 
 ## 3. API 设计约定
 
-- 前缀 `/api/v1`；资源复数：`/assets`、`/maintenance`、`/fixed-expenses`、`/utility-bills`、`/invoices`、`/reminders`。
+- 前缀 `/api/v1`；资源复数：`/assets`、`/maintenance`、`/saving-goals`、`/insurance`、`/fixed-expenses`、`/utility-bills`、`/invoices`、`/reminders`。
 - 认证：`Authorization: Bearer <accessToken>`（15min）+ `refreshToken`（30d，旋转刷新）；密码 argon2id 哈希。
 - **家庭隔离**：所有业务查询必须带 `householdId`（来自当前会话选中的家庭，中间件注入 + Prisma 查询强制过滤）；跨家庭访问返回 404 不泄露存在性。
 - 校验：入参 class-validator DTO；分页 `?page=&pageSize=`（默认 20，最大 100）；软删除 `deletedAt` 过滤在 Prisma 中间件统一处理。

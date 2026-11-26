@@ -8,6 +8,8 @@ import { useFixedExpensesStore } from '@/stores/fixedExpenses';
 import { useBillsStore } from '@/stores/bills';
 import { useInvoicesStore } from '@/stores/invoices';
 import { useMaintenanceStore } from '@/stores/maintenance';
+import { useSavingGoalsStore } from '@/stores/savingGoals';
+import { useInsuranceStore } from '@/stores/insurance';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -16,6 +18,8 @@ const fixed = useFixedExpensesStore();
 const bills = useBillsStore();
 const invoices = useInvoicesStore();
 const plans = useMaintenanceStore();
+const goals = useSavingGoalsStore();
+const insurance = useInsuranceStore();
 
 const mode = ref<'login' | 'register'>('login');
 const email = ref('');
@@ -51,6 +55,8 @@ async function submit() {
       bills.hydrateFromCloud(),
       invoices.hydrateFromCloud(),
       plans.hydrateFromCloud(),
+      goals.hydrateFromCloud(),
+      insurance.hydrateFromCloud(),
     ]);
     void router.replace('/');
   } catch (e) {

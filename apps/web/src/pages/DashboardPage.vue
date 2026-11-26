@@ -16,23 +16,29 @@ import { useAssetsStore } from '@/stores/assets';
 import { useFixedExpensesStore } from '@/stores/fixedExpenses';
 import { usePrefsStore } from '@/stores/prefs';
 import { useMaintenanceStore } from '@/stores/maintenance';
+import { useInsuranceStore } from '@/stores/insurance';
 
 const store = useAssetsStore();
 const fixedStore = useFixedExpensesStore();
 const prefs = usePrefsStore();
 const plans = useMaintenanceStore();
+const insurance = useInsuranceStore();
 const router = useRouter();
 
 onMounted(() => {
   store.load();
   fixedStore.load();
   plans.load();
+  insurance.load();
+  if (insurance.items.length === 0 && plans.items.length === 0) {
+    void insurance.hydrateFromCloud();
+  }
   prefs.load();
 });
 
 interface Item {
   id: string;
-  kind: 'warranty' | 'replace' | 'maintenance';
+  kind: 'warranty' | 'replace' | 'maintenance' | 'insurance';
   assetId?: string;
   title: string;
   subtitle: string;
@@ -87,16 +93,32 @@ const items = computed<Item[]>(() => {
       tone: p.daysLeft <= 0 ? 'urgent' : p.daysLeft <= 30 ? 'warn' : 'ok',
     });
   }
+  for (const p of insurance.views) {
+    if (p.daysToEnd > prefs.warrantyLeadDays) continue;
+    if (p.daysToEnd < -30) continue;
+    out.push({
+      id: `${p.id}-i`,
+      kind: 'insurance',
+      title: `${p.name} 保险到期`,
+      subtitle: p.daysToEnd < 0 ? `已过期 ${-p.daysToEnd} 天` : p.daysToEnd === 0 ? '就是今天' : `还有 ${p.daysToEnd} 天`,
+      date: p.endDate,
+      days: p.daysToEnd,
+      amountFen: p.premiumFen,
+      tone: p.daysToEnd <= 0 ? 'urgent' : p.daysToEnd <= 30 ? 'warn' : 'ok',
+    });
+  }
   return out.sort((x, y) => x.days - y.days);
 });
 
 function iconFor(kind: Item['kind']) {
   if (kind === 'warranty') return ShieldCheck;
   if (kind === 'maintenance') return Wrench;
+  if (kind === 'insurance') return ShieldCheck;
   return ArrowsClockwise;
 }
 
 function openItem(item: Item) {
+  if (item.kind === 'insurance') return void router.push('/goals');
   void router.push(item.assetId ? `/assets/${item.assetId}` : '/assets');
 }
 

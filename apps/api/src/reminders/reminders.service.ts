@@ -6,7 +6,7 @@ import { HouseholdsService } from '../households/households.service';
 import { MailerService } from '../mailer/mailer.service';
 
 export interface ReminderItem {
-  type: 'warranty_expire' | 'replacement' | 'maintenance';
+  type: 'warranty_expire' | 'replacement' | 'maintenance' | 'insurance';
   refId: string;
   assetName: string;
   categoryName: string;
@@ -131,15 +131,43 @@ export class RemindersService {
       });
     }
 
+    // 保险：到期前用「质保提前天数」提醒一次，金额记保费
+    const policies = await this.prisma.insurancePolicy.findMany({
+      where: { householdId, deletedAt: null },
+    });
+    for (const p of policies) {
+      const left = daysBetween(now, p.endDate);
+      if (left > warrantyLead || left < -OVERDUE_WINDOW_DAYS) continue;
+      items.push({
+        type: 'insurance',
+        refId: p.id,
+        assetName: p.name,
+        categoryName: p.kind,
+        dueDate: p.endDate,
+        daysLeft: left,
+        severity: severityOf(left),
+        amountFen: p.premiumFen ?? 0,
+      });
+    }
+
     return items.sort((x, y) => x.daysLeft - y.daysLeft);
   }
 
   /** 生成邮件正文：一张清单 + 合计金额 */
   renderEmail(householdName: string, items: ReminderItem[], appUrl?: string): { subject: string; html: string; totalFen: number } {
-    const totalFen = items.filter((i) => i.type === 'replacement').reduce((s, i) => s + i.amountFen, 0);
+    const totalFen = items
+      .filter((i) => i.type === 'replacement' || i.type === 'insurance')
+      .reduce((s, i) => s + i.amountFen, 0);
     const rows = items
       .map((i) => {
-        const what = i.type === 'warranty_expire' ? '质保到期' : '预计换新';
+        const what =
+          i.type === 'warranty_expire'
+            ? '质保到期'
+            : i.type === 'replacement'
+              ? '预计换新'
+              : i.type === 'maintenance'
+                ? '保养到期'
+                : '保险到期';
         const days = i.daysLeft >= 0 ? `还有 ${i.daysLeft} 天` : `已过期 ${-i.daysLeft} 天`;
         const money = i.amountFen ? formatFen(i.amountFen) : '—';
         const color = i.severity === 'urgent' ? '#b91c1c' : i.severity === 'warn' ? '#b45309' : '#334155';

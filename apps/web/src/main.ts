@@ -12,6 +12,7 @@ import AssetFormPage from './pages/AssetFormPage.vue';
 import AssetDetailPage from './pages/AssetDetailPage.vue';
 import LoginPage from './pages/LoginPage.vue';
 import ReportsPage from './pages/ReportsPage.vue';
+import GoalsPage from './pages/GoalsPage.vue';
 import { useAuthStore } from './stores/auth';
 import { registerSW } from 'virtual:pwa-register';
 
@@ -32,6 +33,7 @@ const router = createRouter({
     { path: '/assets/:id', name: 'asset-detail', component: AssetDetailPage, meta: { title: '资产详情' } },
     { path: '/calendar', name: 'calendar', component: CalendarPage, meta: { title: '日历' } },
     { path: '/receipts', name: 'receipts', component: LedgerPage, meta: { title: '账目' } },
+    { path: '/goals', name: 'goals', component: GoalsPage, meta: { title: '目标与保险' } },
     { path: '/reports', name: 'reports', component: ReportsPage, meta: { title: '统计报表' } },
     { path: '/settings', name: 'settings', component: SettingsPage, meta: { title: '我的' } },
     { path: '/login', name: 'login', component: LoginPage, meta: { title: '登录' } },

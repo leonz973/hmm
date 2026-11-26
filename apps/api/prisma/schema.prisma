@@ -53,6 +53,8 @@ model Household {
   auditLogs      AuditLog[]
   attachments    Attachment[]
   maintenancePlans MaintenancePlan[]
+  savingGoals      SavingGoal[]
+  insurancePolicies InsurancePolicy[]
 }
 
 model Membership {
@@ -66,8 +68,6 @@ model Membership {
   household Household @relation(fields: [householdId], references: [id])
 
   @@unique([userId, householdId])
-  savingGoals         SavingGoal[]
-  insurancePolicies   InsurancePolicy[]
 }
 
 model Category {

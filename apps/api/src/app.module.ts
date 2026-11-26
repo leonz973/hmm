@@ -9,6 +9,8 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { SavingGoalsModule } from './saving-goals/saving-goals.module';
+import { InsuranceModule } from './insurance/insurance.module';
 import { MailerModule } from './mailer/mailer.module';
 import { HealthController } from './health.controller';
 import { HouseholdsModule } from './households/households.module';
@@ -29,6 +31,8 @@ import { PrismaModule } from './prisma/prisma.module';
     RemindersModule,
     AttachmentsModule,
     MaintenanceModule,
+    SavingGoalsModule,
+    InsuranceModule,
     // 后续：CategoriesModule / RemindersModule（cron 06:00）/ StorageModule（MinIO 预签名）/ ExportModule
   ],
   controllers: [HealthController],

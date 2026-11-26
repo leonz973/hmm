@@ -453,6 +453,23 @@ textarea::placeholder {
     radial-gradient(46% 38% at 0% 100%, rgba(28, 75, 60, 0.05), transparent 72%);
 }
 
+
+:root:not([data-theme='dark']) .primary {
+  color: #fdfaf2 !important;
+  box-shadow: 3px 3px 0 rgba(27, 26, 23, 0.18) !important;
+}
+
+:root:not([data-theme='dark']) .primary:hover:not(:disabled) {
+  box-shadow: 5px 5px 0 rgba(27, 26, 23, 0.2) !important;
+  filter: none;
+}
+
+:root:not([data-theme='dark']) .ghost {
+  background: var(--color-card) !important;
+  border: 1px solid rgba(27, 26, 23, 0.2) !important;
+  color: var(--color-text) !important;
+}
+
 :root:not([data-theme='dark']) .card::before {
   display: none;
 }

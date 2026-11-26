@@ -15,6 +15,7 @@ import {
   PhCopy as Copy,
   PhChartPieSlice as ChartPie,
   PhDeviceMobile as DeviceMobile,
+  PhShieldCheck as ShieldCheck,
 } from '@phosphor-icons/vue';
 import { api } from '@/lib/api';
 import { clearAll, exportAssetsCSV, exportJSON, importJSON } from '@/lib/backup';
@@ -290,6 +291,11 @@ function onClear() {
         <ChartPie :size="18" />
         <span>统计报表</span>
         <span class="tiny">支出构成 · 折旧 · 未来三年</span>
+      </button>
+      <button class="row" type="button" @click="router.push('/goals')">
+        <ShieldCheck :size="18" />
+        <span>目标与保险</span>
+        <span class="tiny">储蓄目标 · 保单到期</span>
       </button>
       <button class="row" type="button" @click="installModal = true">
         <DeviceMobile :size="18" />

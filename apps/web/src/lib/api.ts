@@ -124,6 +124,54 @@ export interface MaintenanceRecord {
   createdAt: string;
   updatedAt: string;
 }
+export interface SavingGoalRecord {
+  id: string;
+  name: string;
+  targetFen: number;
+  savedFen: number;
+  targetDate: string;
+  linkedAssetId?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface SavingGoalPayload {
+  name: string;
+  targetFen: number;
+  savedFen?: number;
+  targetDate: string;
+  linkedAssetId?: string;
+  note?: string;
+}
+
+export interface InsuranceRecord {
+  id: string;
+  name: string;
+  kind: string;
+  company?: string;
+  coverageFen: number;
+  premiumFen: number;
+  cycle: string;
+  startDate: string;
+  endDate: string;
+  contact?: string;
+  note?: string;
+  daysToEnd: number;
+  createdAt: string;
+}
+
+export interface InsurancePayload {
+  name: string;
+  kind: string;
+  company?: string;
+  coverageFen?: number;
+  premiumFen?: number;
+  cycle?: string;
+  startDate: string;
+  endDate: string;
+  contact?: string;
+  note?: string;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -422,4 +470,29 @@ export const api = {
   deleteMaintenance(id: string) {
     return request<{ ok: boolean }>(`/maintenance/${id}`, { method: 'DELETE' });
   },
+  listSavingGoals<T = SavingGoalRecord[]>() {
+    return request<T>('/saving-goals');
+  },
+  createSavingGoal<T = SavingGoalRecord>(payload: SavingGoalPayload) {
+    return request<T>('/saving-goals', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateSavingGoal<T = SavingGoalRecord>(id: string, payload: Partial<SavingGoalPayload>) {
+    return request<T>(`/saving-goals/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  deleteSavingGoal(id: string) {
+    return request<{ ok: boolean }>(`/saving-goals/${id}`, { method: 'DELETE' });
+  },
+  listInsurance<T = InsuranceRecord[]>() {
+    return request<T>('/insurance');
+  },
+  createInsurance<T = InsuranceRecord>(payload: InsurancePayload) {
+    return request<T>('/insurance', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  updateInsurance<T = InsuranceRecord>(id: string, payload: Partial<InsurancePayload>) {
+    return request<T>(`/insurance/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  },
+  deleteInsurance(id: string) {
+    return request<{ ok: boolean }>(`/insurance/${id}`, { method: 'DELETE' });
+  },
+
 };
