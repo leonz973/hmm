@@ -53,8 +53,10 @@ describe('附件上传请求', () => {
 
   it('下载附件时取回二进制而不是 JSON', async () => {
     setTokens('access-2', 'refresh-2');
+    // 注意：body 用字符串而不是 new Blob()——jsdom 的 Blob 没有 stream()，
+    // Node 22 的 undici Response 会报 `object.stream is not a function`（CI 上复现过）。
     fetchMock.mockResolvedValue(
-      new Response(new Blob(['%PDF-1.4'], { type: 'application/pdf' }), {
+      new Response('%PDF-1.4', {
         status: 200,
         headers: { 'Content-Type': 'application/pdf' },
       }),

@@ -1,0 +1,14 @@
+安装依赖 ::  data-log-url="/leonz973/hmm/commit/bd38077820e833e785cd5acc902ce647cb10fc47/checks/139814044241/logs/3" data-job-completed data-use-actions-ux > <check-step data-name="安装依赖" data-number="4" data-conclusion="success" data-external-id="4b423070-84da-4696-af17-83e1cf7dc0fa" data-expand="" data-started-at="2026-11-26T09:28:33Z" data-completed-at="2026-11-26T09:28:53Z" data-log-url="/le
+---
+生成 Prisma ::  data-log-url="/leonz973/hmm/commit/bd38077820e833e785cd5acc902ce647cb10fc47/checks/139814044241/logs/4" data-job-completed data-use-actions-ux > <check-step data-name="生成 Prisma Client" data-number="5" data-conclusion="success" data-external-id="862fe921-7b36-4bfa-8181-9945107f78fe" data-expand="" data-started-at="2026-11-26T09:28:53Z" data-completed-at="2026-11-26T09:28:55Z" data-
+---
+构建（shared ::  data-log-url="/leonz973/hmm/commit/bd38077820e833e785cd5acc902ce647cb10fc47/checks/139814044241/logs/5" data-job-completed data-use-actions-ux > <check-step data-name="构建（shared → web → api）" data-number="6" data-conclusion="success" data-external-id="34a6f8d3-6ed3-47d4-a676-65b24401a2f8" data-expand="" data-started-at="2026-11-26T09:28:55Z" data-completed-at="2026-11-26T09:29:07Z" 
+---
+单元测试 :: 34L9.06 8l1.97-1.97a.749.749 0 0 0-.326-1.275.749.749 0 0 0-.734.215L8 6.94Z"> 单元测试 Process completed
+---
+单元测试 :: 8 6.94Z"> 单元测试: apps/web/src/__tests__/api.test.ts#L57 
+---
+单元测试 ::  data-log-url="/leonz973/hmm/commit/bd38077820e833e785cd5acc902ce647cb10fc47/checks/139814044241/logs/6" data-job-completed data-use-actions-ux > <check-step data-name="单元测试" data-number="7" data-conclusion="failure" data-external-id="80b7a096-3da5-4527-baca-106a0a393276" data-expand="true" data-started-at="2026-11-26T09:29:07Z" data-completed-at="2026-11-26T09:29:12Z" data-log-url=
+---
+Process completed ::  单元测试 Process completed with exit code 1. Show more <butto
+---
