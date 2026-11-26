@@ -4,6 +4,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     vue(),
     VitePWA({
@@ -26,7 +29,8 @@ export default defineConfig({
           { src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      devOptions: { enabled: true, type: 'module', navigateFallback: 'index.html' },
+      // 开发期不注册 Service Worker：手机经由局域网 IP 调试时，旧 dev SW 会缓存到旧资源，造成“地址变了页面不变”的假象
+      devOptions: { enabled: false },
       workbox: {
         navigateFallback: '/index.html',
         // 不要把接口请求吞进 SW 缓存

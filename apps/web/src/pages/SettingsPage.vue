@@ -57,6 +57,7 @@ const accountSub = computed(() =>
 );
 const memberCount = computed(() => auth.household?.members.length ?? 0);
 
+const buildTime = __BUILD_TIME__.replace('T', ' ').slice(0, 16);
 const theme = ref<'light' | 'dark'>('light');
 const health = ref<'checking' | 'ok' | 'fail'>('checking');
 const toast = ref('');
@@ -380,7 +381,8 @@ function onClear() {
           </label>
 
           <p v-if="familyError" class="err">{{ familyError }}</p>
-        </template>
+          <p class="tiny build">构建 {{ buildTime }} · 手机端如遇页面不刷新，先确认这一行是最新的</p>
+</template>
 
         <template v-else>
           <p class="tiny desc">本地模式下没有家庭成员。登录后可以邀请家人加入同一个家庭空间。</p>
@@ -818,5 +820,10 @@ h1 {
   flex-direction: column;
   gap: 6px;
   line-height: 1.5;
+}
+.build {
+  text-align: center;
+  margin: var(--space-md) 0 var(--space-lg);
+  color: var(--color-text-3);
 }
 </style>

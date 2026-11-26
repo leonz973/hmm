@@ -22,6 +22,12 @@ const accountLabel = computed(() => {
   return auth.household?.name ?? '我的家';
 });
 
+function go(path: string) {
+  // 用 button + router.push，避免 <a href> 在部分移动端浏览器里被系统接管成整页导航
+  if (route.path === path) return;
+  void router.push(path);
+}
+
 function onAccountClick() {
   void router.push(auth.isCloud ? '/settings' : '/login');
 }
@@ -62,21 +68,23 @@ initInstallPrompt();
 
     <main class="content">
       <RouterView v-slot="{ Component }">
-        <component :is="Component" />
+        <component :is="Component" :key="route.fullPath" />
       </RouterView>
     </main>
 
     <nav v-if="showTabs" class="tabbar" aria-label="主导航">
-      <RouterLink
+      <button
         v-for="tab in tabs"
         :key="tab.path"
-        :to="tab.path"
+        type="button"
         class="tab"
         :class="{ active: current === tab.path }"
+        :aria-current="current === tab.path ? 'page' : undefined"
+        @click="go(tab.path)"
       >
         <component :is="tab.icon" :size="22" weight="regular" />
         <span>{{ tab.label }}</span>
-      </RouterLink>
+      </button>
     </nav>
   </div>
 </template>
@@ -224,9 +232,16 @@ initInstallPrompt();
   justify-content: center;
   gap: 2px;
   min-height: 56px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
   font-size: 11px;
   color: var(--color-text-3);
   text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: color 0.15s var(--ease-out);
 }
 

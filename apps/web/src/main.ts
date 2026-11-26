@@ -43,7 +43,26 @@ const pinia = createPinia();
 const savedTheme = localStorage.getItem('hmm-theme');
 document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
 
+router.onError((err) => {
+  console.error('[router] navigation failed', err);
+});
+
 const app = createApp(App).use(pinia).use(router);
+
+app.config.errorHandler = (err, _instance, info) => {
+  console.error('[vue] ' + info, err);
+};
+
+// 开发期清理历史遗留的 dev Service Worker：手机上很可能是它缓存了旧 bundle
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker
+    .getRegistrations()
+    .then((rs) => rs.forEach((r) => void r.unregister()))
+    .catch(() => {});
+  if ('caches' in window) {
+    void caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k)));
+  }
+}
 
 // 先恢复登录态再挂载：否则首屏会在「本地模式」和「云同步」之间闪一下
 void useAuthStore(pinia)
