@@ -30,3 +30,8 @@ storage/
 
 # 截图/调试临时目录
 .shots/
+
+# 本地数据库与构建产物
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/web/dev-dist/
